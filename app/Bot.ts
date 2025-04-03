@@ -1,10 +1,12 @@
-import { Client as DiscordClient, Collection, GatewayIntentBits } from "discord.js";
+import { Client as DiscordClient, Collection, GatewayIntentBits, ChannelType, Channel, TextChannel } from "discord.js";
 import { Client as RevoltClient } from "revolt.js";
 import { REST } from "@discordjs/rest";
 import npmlog from "npmlog";
 
 import { Main } from "./Main";
 import {
+  handleDiscordChannelCreate,
+  handleDiscordChannelDelete,
   handleDiscordMessage,
   handleDiscordMessageDelete,
   handleDiscordMessageUpdate,
@@ -120,6 +122,26 @@ export class Bot {
 
     this.discord.on("messageCreate", (message) => {
       handleDiscordMessage(this.revolt, this.discord, message);
+    });
+
+    this.discord.on("channelCreate", async (channel: TextChannel) => {
+      if (channel.type !== ChannelType.GuildText) {
+        console.log(`Discord channel "${channel.name}" was created, but it's not a text channel. Ignoring`);
+
+        return;
+      }
+
+      handleDiscordChannelCreate(this.revolt, this.discord, channel);
+    });
+
+    this.discord.on("channelDelete", async (channel: TextChannel) => {
+      if (channel.type !== ChannelType.GuildText) {
+        console.log(`Discord channel "${channel.name}" was deleted, but it's not a text channel. Ignoring`);
+
+        return;
+      }
+
+      handleDiscordChannelDelete(this.revolt, this.discord, channel);
     });
 
     // Debugging

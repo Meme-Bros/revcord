@@ -7,6 +7,9 @@ import {
   TextChannel,
   Attachment,
 } from "discord.js";
+import {
+  DataCreateChannel
+} from "revolt-api/esm/types";
 import npmlog from "npmlog";
 import { Client as RevoltClient } from "revolt.js";
 import { Main } from "./Main";
@@ -19,7 +22,9 @@ import {
 } from "./util/regex";
 import { RevcordEmbed } from "./util/embeds";
 import { checkWebhookPermissions } from "./util/permissions";
-import { truncate } from "./util/truncate";
+import { truncate, truncateForSafeRevoltChannelName } from "./util/truncate";
+import { MappingModel } from "./models/Mapping";
+import UniversalExecutor from "./universalExecutor";
 
 /**
  * This file contains code taking care of things from Discord to Revolt
@@ -394,6 +399,106 @@ export async function handleDiscordMessageDelete(
       npmlog.error("Revolt", e);
     }
   }
+}
+
+/**
+ * Handle Discord channel create in Revolt
+ * @param revolt Revolt client
+ * @param discord Discord client
+ * @param channel Discord text channel
+ */
+export async function handleDiscordChannelCreate(
+  revolt: RevoltClient,
+  discord: DiscordClient,
+  channel: TextChannel
+) {
+  const universalExecutor = new UniversalExecutor(discord, revolt);
+  const discordGuildId = channel.guildId;
+
+  // Grab a random channel mapping item that already has this guild linked
+  const discordGuildMapping = await MappingModel.findOne({
+    where: {
+      discordGuild: discordGuildId
+    }
+  });
+
+  if (! discordGuildMapping) {
+    console.error(`Attempted to automatically create channel, but Discord guild ID "${discordGuildId}" is unknown. Have you mapped at least one channel before for this guild?`);
+
+    return;
+  }
+
+  const revoltServerId = discordGuildMapping.revoltServer;
+  const revoltServer = revolt.servers.get(revoltServerId);
+
+  if (! revoltServer) {
+    console.error(`We can't find Revolt server with ID "${revoltServerId}".`);
+
+    return;
+  }
+
+  const revoltChannelInformation: DataCreateChannel = {
+    type: 'Text',
+    name: truncateForSafeRevoltChannelName(channel.name),
+    description: channel.topic,
+    nsfw: channel.nsfw
+  }
+
+  const existingRevoltChannel = revoltServer.channels.find((channel) => channel.name === revoltChannelInformation.name);
+
+  if (existingRevoltChannel) {
+    console.warn(`The Revolt server already has a channel called "${revoltChannelInformation.name}", so we won't create/map this channel automatically.`);
+
+    return;
+  }
+
+  const revoltChannel = await revoltServer.createChannel(revoltChannelInformation);
+
+  // Make sure the caches are up-to-date
+  await discord.channels.fetch(channel.id);
+  await revolt.channels.fetch(revoltChannel._id);
+
+  await universalExecutor.connect(channel.id, revoltChannel._id);
+
+  console.log(`Automatically linked Discord channel "${channel.id}" to Revolt channel "${revoltChannel._id}"`);
+
+  await channel.send(`Discord channel "${channel.name}" (${channel.id}) has been linked to Revolt channel "${revoltChannelInformation.name}" (${revoltChannel._id})`);
+}
+
+/**
+ * Handle Discord channel delete in Revolt by unlinking (if linked)
+ * @param revolt Revolt client
+ * @param discord Discord client
+ * @param channel Discord text channel
+ */
+export async function handleDiscordChannelDelete(
+  revolt: RevoltClient,
+  discord: DiscordClient,
+  channel: TextChannel
+) {
+  const universalExecutor = new UniversalExecutor(discord, revolt);
+  const channelId = channel.id;
+
+  // Grab a random channel mapping item that already has this guild linked
+  const discordGuildMapping = await MappingModel.findOne({
+    where: {
+      discordChannel: channelId
+    }
+  });
+
+  if (! discordGuildMapping) {
+    console.error(`Attempted to automatically unlink deleted channel, but Discord channel ID "${channelId}" is unknown, so it's probably not connected to anything.`);
+
+    return;
+  }
+
+  await MappingModel.destroy({
+    where: {
+      discordChannel: channelId
+    }
+  });
+
+  console.log(`Automatically disconnected Discord channel "${channel.id}" from Revolt channel "${discordGuildMapping.revoltChannel}"`);
 }
 
 /**

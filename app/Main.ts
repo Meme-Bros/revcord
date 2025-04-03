@@ -58,6 +58,12 @@ export class Main {
           autoIncrement: true,
           primaryKey: true,
         },
+        revoltServer: {
+          type: DataTypes.STRING,
+        },
+        discordGuild: {
+          type: DataTypes.STRING,
+        },
         discordChannel: {
           type: DataTypes.STRING,
         },

@@ -19,6 +19,12 @@
 
 - [x] Bridge messages between platforms
 - [ ] Bridge channels automatically
+  - [x] Automatically create channel (Discord -> Revolt)
+  - [ ] Automatically create channel (Revolt -> Discord)
+  - [ ] Automatically update channel (Discord -> Revolt)
+  - [ ] Automatically update channel (Revolt -> Discord)
+  - [x] Automatically disconnect channel on delete (Discord -> Revolt)
+  - [ ] Automatically disconnect channel on delete (Revolt -> Discord)
 - [x] Bridge attachments
   - [ ] Automatically reupload attachments to Revolt
 - [x] Bridge replies

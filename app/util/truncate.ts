@@ -12,3 +12,7 @@ export function fitOrEmpty(value: string, limit: number) {
     return "";
   } else return value;
 }
+
+export function truncateForSafeRevoltChannelName(channelName: string) {
+  return truncate(channelName, 32);
+}

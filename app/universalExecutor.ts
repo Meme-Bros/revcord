@@ -111,6 +111,8 @@ export default class UniversalExecutor {
 
       // Insert into database
       await MappingModel.create({
+        discordGuild: discordChannel.guildId,
+        revoltServer: revoltChannel.server_id,
         discordChannel: discordTarget,
         revoltChannel: revoltTarget,
         discordChannelName: discordChannelName,
