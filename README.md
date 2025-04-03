@@ -18,11 +18,16 @@
 ## 📔 Features <a id="features"></a>
 
 - [x] Bridge messages between platforms
+- [ ] Bridge channels automatically
 - [x] Bridge attachments
+  - [ ] Automatically reupload attachments to Revolt
 - [x] Bridge replies
 - [x] Bridge message edit and delete
 - [x] Bridge embeds
+  - [ ] Include attachments
 - [x] Bridge emoji[^1]
+  - [ ] Automatically import emoji
+  - [ ] Mapping Discord emoji to Revolt variants
 - [x] Seamlessly display user information
 
 [^1]: Revolt to Discord works, but limited to 3 emojis displayed to stop bombing with links. Animated emojis from Revolt will convert to static due to limits on Revolt's image backend
