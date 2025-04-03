@@ -18,6 +18,9 @@
 ## 📔 Features <a id="features"></a>
 
 - [x] Bridge messages between platforms
+- [ ] Bridge categories automatically
+  - [ ] Creating categories
+  - [ ] Moving channels to categories
 - [ ] Bridge channels automatically
   - [x] Automatically create channel (Discord -> Revolt)
   - [ ] Automatically create channel (Revolt -> Discord)
@@ -25,6 +28,10 @@
   - [ ] Automatically update channel (Revolt -> Discord)
   - [x] Automatically disconnect channel on delete (Discord -> Revolt)
   - [ ] Automatically disconnect channel on delete (Revolt -> Discord)
+- [ ] Bridge roles automatically ***(acts as a label only, permissions aren't synced!)***
+  - [ ] Create role
+  - [ ] Delete role
+  - [ ] Delete role
 - [x] Bridge attachments
   - [ ] Automatically reupload attachments to Revolt
 - [x] Bridge replies
@@ -35,6 +42,7 @@
   - [ ] Automatically import emoji
   - [ ] Mapping Discord emoji to Revolt variants
 - [x] Seamlessly display user information
+- [ ] Initial import of channels & roles 
 
 [^1]: Revolt to Discord works, but limited to 3 emojis displayed to stop bombing with links. Animated emojis from Revolt will convert to static due to limits on Revolt's image backend
 
