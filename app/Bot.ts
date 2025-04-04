@@ -7,18 +7,15 @@ import { Main } from "./Main";
 import {
   handleDiscordChannelCreate,
   handleDiscordChannelDelete,
-  handleDiscordMessageUpdate,
   initiateDiscordChannel,
 } from "./discord";
-import {
-  handleRevoltMessageUpdate,
-} from "./revolt";
 import { registerSlashCommands } from "./discord/slash";
 import { DiscordCommand, PartialDiscordMessage, RevoltCommand } from "./interfaces";
 import { slashCommands } from "./discord/commands";
 import UniversalExecutor from "./universalExecutor";
 import { revoltCommands } from "./revolt/commands";
 import MessageCreateEvent from "./events/MessageCreateEvent";
+import MessageUpdateEvent from "./events/MessageUpdateEvent";
 import MessageDeleteEvent from "./events/MessageDeleteEvent";
 import type IBotEvent from "./events/IBotEvent";
 
@@ -35,7 +32,7 @@ export class Bot {
   private botEvents: Array<IBotEvent> = [
     // TODO: Implement/migrate the commented events to the new structure
     new MessageCreateEvent(),
-    // new MessageUpdateEvent(),
+    new MessageUpdateEvent(),
     new MessageDeleteEvent(),
     // new ChannelCreateEvent(),
     // new ChannelDeleteEvent(),
@@ -151,22 +148,6 @@ export class Bot {
       }
     }
 
-    this.discord.on("messageUpdate", (oldMessage, newMessage) => {
-      if (oldMessage.applicationId === this.discord.user.id) return;
-
-      const partialMessage: PartialDiscordMessage = {
-        author: oldMessage.author,
-        attachments: oldMessage.attachments,
-        channelId: oldMessage.channelId,
-        content: newMessage.content,
-        embeds: newMessage.embeds,
-        id: newMessage.id,
-        mentions: newMessage.mentions,
-      };
-
-      handleDiscordMessageUpdate(this.revolt, partialMessage);
-    });
-
     for (const botEvent of this.botEvents) {
       if (! botEvent.DISCORD_EVENT) {
         // This event doesn't have a discord equivalent
@@ -174,8 +155,8 @@ export class Bot {
         continue;
       }
 
-      console.log(`Registering event "${botEvent.DISCORD_EVENT}" (Discord -> Revolt)`);
-      this.discord.on(botEvent.DISCORD_EVENT, async (event) => await botEvent.discordToRevolt(this.revolt, this.discord, event));
+      console.log(`Registering D->R event "${botEvent.DISCORD_EVENT}"`);
+      this.discord.on(botEvent.DISCORD_EVENT, async (eventParameterOne, eventParameterTwo, eventParameterThree) => await botEvent.discordToRevolt(this.revolt, this.discord, eventParameterOne, eventParameterTwo, eventParameterThree));
     }
 
     this.discord.login(process.env.DISCORD_TOKEN);
@@ -207,14 +188,6 @@ export class Bot {
       });
     });
 
-    this.revolt.on("message/update", async (message) => {
-      if (message.author.bot !== null) return;
-
-      if (typeof message.content != "string") return;
-
-      handleRevoltMessageUpdate(this.revolt, message);
-    });
-
     for (const botEvent of this.botEvents) {
       if (! botEvent.REVOLT_EVENT) {
         // This event doesn't have a revolt equivalent
@@ -222,10 +195,10 @@ export class Bot {
         continue;
       }
 
-      console.log(`Registering event "${botEvent.REVOLT_EVENT}" (Revolt -> Discord)`);
+      console.log(`Registering R->D event "${botEvent.REVOLT_EVENT}"`);
 
       // @ts-ignore: 2769
-      this.revolt.on(botEvent.REVOLT_EVENT, async (event) => await botEvent.revoltToDiscord(this.revolt, this.discord, event));
+      this.revolt.on(botEvent.REVOLT_EVENT, async (eventParameterOne, eventParameterTwo, eventParameterThree) => await botEvent.revoltToDiscord(this.revolt, this.discord, eventParameterOne, eventParameterTwo, eventParameterThree));
     }
 
     this.revolt.loginBot(process.env.REVOLT_TOKEN);

@@ -143,38 +143,3 @@ export async function sendDiscordMessage(
     createdMessage: webhookMessage.id,
   });
 }
-
-/**
- * Handle Revolt message update and update the relevant message in Discord
- * @param revolt Revolt client
- * @param message Discord message object
- */
-export async function handleRevoltMessageUpdate(revolt: RevoltClient, message: Message) {
-  // Find target Discord channel
-  const target = Main.mappings.find((mapping) => mapping.revolt === message.channel_id);
-
-  if (target) {
-    try {
-      const cachedMessage = Main.revoltCache.find(
-        (cached) => cached.parentMessage === message._id
-      );
-
-      if (cachedMessage) {
-        const webhook = Main.webhooks.find(
-          (webhook) => webhook.name === "revcord-" + target.revolt
-        );
-
-        if (webhook) {
-          const messageString = await formatMessage(revolt, message);
-
-          await webhook.editMessage(cachedMessage.createdMessage, {
-            content: messageString,
-          });
-        }
-      }
-    } catch (e) {
-      npmlog.error("Discord", "Failed to edit message");
-      npmlog.error("Discord", e);
-    }
-  }
-}

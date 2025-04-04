@@ -15,7 +15,7 @@ export default class MessageDeleteEvent implements IBotEvent
     public DISCORD_EVENT = 'messageDelete';
     public REVOLT_EVENT = 'message/delete';
 
-    public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, messageId: string): Promise<void> {
+    public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, messageId: string, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {
         const cachedMessage = Main.revoltCache.find(
             (cached) => cached.parentMessage === messageId
         );
@@ -56,7 +56,7 @@ export default class MessageDeleteEvent implements IBotEvent
         }
     }
 
-    public async discordToRevolt(revolt: RevoltClient, discord: DiscordClient, message: DiscordMessage): Promise<void> {
+    public async discordToRevolt(revolt: RevoltClient, discord: DiscordClient, message: DiscordMessage, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {
         // Warning: Most of the message object will not be available, ID should be safe though
 
         const cachedMessage = Main.discordCache.find(

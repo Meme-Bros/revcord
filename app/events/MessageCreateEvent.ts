@@ -47,7 +47,7 @@ export default class MessageCreateEvent implements IBotEvent
         });
     }
 
-    public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, message: RevoltMessage): Promise<void> {
+    public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, message: RevoltMessage, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {
         if (typeof message.content !== "string") return;
 
         const target = Main.mappings.find(
@@ -214,7 +214,7 @@ export default class MessageCreateEvent implements IBotEvent
         );
     }
 
-    public async discordToRevolt(revolt: RevoltClient, discord: DiscordClient, message: DiscordMessage): Promise<void> {
+    public async discordToRevolt(revolt: RevoltClient, discord: DiscordClient, message: DiscordMessage, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {
         const target = Main.mappings.find(
             (mapping) => mapping.discord === message.channelId
         );

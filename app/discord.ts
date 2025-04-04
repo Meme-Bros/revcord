@@ -131,61 +131,6 @@ export function formatMessage(
 }
 
 /**
- * Handle Discord message update and update the relevant message in Revolt
- * @param revolt Revolt client
- * @param message PartialDiscordMessage object (oldMessage, just content from newMessage)
- */
-export async function handleDiscordMessageUpdate(
-  revolt: RevoltClient,
-  message: PartialDiscordMessage
-) {
-  try {
-    // Find target Revolt channel
-    const target = Main.mappings.find((mapping) => mapping.discord === message.channelId);
-
-    if (target && (target.allowBots || !message.author.bot)) {
-      const cachedMessage = Main.discordCache.find(
-        (cached) => cached.parentMessage === message.id
-      );
-
-      if (cachedMessage) {
-        const messageObject = {} as any;
-
-        if (message.content.length > 0) {
-          messageObject.content = formatMessage(
-            message.attachments,
-            message.content,
-            message.mentions
-          );
-        }
-
-        if (message.embeds.length && message.author.bot) {
-          if (typeof messageObject.embeds === "undefined") messageObject.embeds = [];
-
-          try {
-            const embed = new RevcordEmbed().fromDiscord(message.embeds[0]).toRevolt();
-
-            messageObject.embeds.push(embed);
-          } catch (e) {
-            npmlog.warn("Discord", "Failed to translate embed.");
-            npmlog.warn("Discord", JSON.stringify(message.embeds[0]));
-            npmlog.warn("Discord", e);
-          }
-        }
-
-        const channel = await revolt.channels.get(target.revolt);
-        const messageToEdit = await channel.fetchMessage(cachedMessage.createdMessage);
-
-        await messageToEdit.edit(messageObject);
-      }
-    }
-  } catch (e) {
-    npmlog.error("Revolt", "Failed to edit message");
-    npmlog.error("Discord", e);
-  }
-}
-
-/**
  * Handle Discord channel create in Revolt
  * @param revolt Revolt client
  * @param discord Discord client
