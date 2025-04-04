@@ -178,38 +178,3 @@ export async function handleRevoltMessageUpdate(revolt: RevoltClient, message: M
     }
   }
 }
-
-/**
- * Handle Revolt message delete and delete the relevant message in Discord
- * @param revolt Revolt client
- * @param messageId Deleted Revolt message ID
- */
-export async function handleRevoltMessageDelete(revolt: RevoltClient, messageId: string) {
-  // Find target Discord channel
-  const cachedMessage = Main.revoltCache.find(
-    (cached) => cached.parentMessage === messageId
-  );
-
-  if (cachedMessage) {
-    try {
-      const target = Main.mappings.find(
-        (mapping) => mapping.revolt === cachedMessage.channelId
-      );
-
-      if (target) {
-        const webhook = Main.webhooks.find(
-          (webhook) => webhook.name === "revcord-" + target.revolt
-        );
-
-        if (webhook) {
-          await webhook.deleteMessage(cachedMessage.createdMessage);
-
-          // TODO remove from cache
-        }
-      }
-    } catch (e) {
-      npmlog.error("Discord", "Failed to delete message");
-      npmlog.error("Discord", e);
-    }
-  }
-}

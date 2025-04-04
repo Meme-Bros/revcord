@@ -7,12 +7,10 @@ import { Main } from "./Main";
 import {
   handleDiscordChannelCreate,
   handleDiscordChannelDelete,
-  handleDiscordMessageDelete,
   handleDiscordMessageUpdate,
   initiateDiscordChannel,
 } from "./discord";
 import {
-  handleRevoltMessageDelete,
   handleRevoltMessageUpdate,
 } from "./revolt";
 import { registerSlashCommands } from "./discord/slash";
@@ -21,6 +19,7 @@ import { slashCommands } from "./discord/commands";
 import UniversalExecutor from "./universalExecutor";
 import { revoltCommands } from "./revolt/commands";
 import MessageCreateEvent from "./events/MessageCreateEvent";
+import MessageDeleteEvent from "./events/MessageDeleteEvent";
 import type IBotEvent from "./events/IBotEvent";
 
 export class Bot {
@@ -34,7 +33,12 @@ export class Bot {
   private executor: UniversalExecutor;
 
   private botEvents: Array<IBotEvent> = [
-    new MessageCreateEvent()
+    // TODO: Implement/migrate the commented events to the new structure
+    new MessageCreateEvent(),
+    // new MessageUpdateEvent(),
+    new MessageDeleteEvent(),
+    // new ChannelCreateEvent(),
+    // new ChannelDeleteEvent(),
   ];
 
   public async start() {
@@ -163,12 +167,6 @@ export class Bot {
       handleDiscordMessageUpdate(this.revolt, partialMessage);
     });
 
-    this.discord.on("messageDelete", (message) => {
-      if (message.applicationId === this.discord.user.id) return;
-
-      handleDiscordMessageDelete(this.revolt, message.id);
-    });
-
     for (const botEvent of this.botEvents) {
       if (! botEvent.DISCORD_EVENT) {
         // This event doesn't have a discord equivalent
@@ -215,10 +213,6 @@ export class Bot {
       if (typeof message.content != "string") return;
 
       handleRevoltMessageUpdate(this.revolt, message);
-    });
-
-    this.revolt.on("message/delete", async (id) => {
-      handleRevoltMessageDelete(this.revolt, id);
     });
 
     for (const botEvent of this.botEvents) {
