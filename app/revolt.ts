@@ -22,7 +22,7 @@ import {
  * @param ping ID of the user to ping
  * @returns Formatted string
  */
-async function formatMessage(revolt: RevoltClient, message: Message) {
+export async function formatMessage(revolt: RevoltClient, message: Message) {
   let messageString = "";
   let content = message.content.toString();
 
@@ -108,142 +108,6 @@ async function formatMessage(revolt: RevoltClient, message: Message) {
 }
 
 /**
- * Find a relevant mapping and direct a Revolt message to Discord
- * @param discord Discord client
- * @param revolt Revolt client
- * @param message Revolt message object
- */
-export async function handleRevoltMessage(
-  discord: DiscordClient,
-  revolt: RevoltClient,
-  message: Message,
-  target: Mapping
-) {
-  try {
-    const channel = await discord.channels.fetch(target.discord);
-
-    if (channel instanceof TextChannel) {
-      const webhook = Main.webhooks.find(
-        (webhook) => webhook.name === "revcord-" + target.revolt
-      );
-
-      if (!webhook) {
-        throw new Error("No webhook in channel Discord#" + channel.name);
-      }
-
-      // Handle replies
-      const reply_ids = message.reply_ids;
-      let reply: ReplyObject;
-
-      if (reply_ids) {
-        const crossPlatformReference = Main.discordCache.find(
-          (cached) => cached.createdMessage === reply_ids[0]
-        );
-
-        if (crossPlatformReference) {
-          // Find Discord message that's being replied to
-          const referencedMessage = await channel.messages.fetch(
-            crossPlatformReference.parentMessage
-          );
-
-          // Parse attachments
-          let attachments: AttachmentType[] = [];
-
-          if (referencedMessage.attachments.first()) {
-            attachments.push("file");
-          }
-
-          if (referencedMessage.embeds.length > 0) {
-            attachments.push("embed");
-          }
-
-          const replyObject: ReplyObject = {
-            pingable: false,
-            entity:
-              referencedMessage.author.username +
-              "#" +
-              referencedMessage.author.discriminator,
-            entityImage: referencedMessage.author.avatarURL(),
-            content: referencedMessage.content,
-            originalUrl: referencedMessage.url,
-            attachments: attachments ? attachments : [],
-          };
-
-          reply = replyObject;
-        } else {
-          try {
-            const channel = revolt.channels.get(target.revolt);
-            const message = await channel.fetchMessage(reply_ids[0]);
-
-            // Parse attachments
-            let attachments: AttachmentType[] = [];
-
-            if (message.attachments !== null) {
-              attachments.push("file");
-            }
-
-            const replyObject: ReplyObject = {
-              pingable: false,
-              entity: message.author.username,
-              entityImage: message.author.generateAvatarURL({ size: 64 }),
-              content: message.content.toString(),
-              attachments: attachments ? attachments : [],
-            };
-
-            reply = replyObject;
-          } catch {}
-        }
-      }
-
-      let messageString = await formatMessage(revolt, message);
-
-      let embed =
-        reply &&
-        new EmbedBuilder()
-          .setColor("#5875e8")
-          .setAuthor({ name: reply.entity, iconURL: reply.entityImage });
-
-      // Add original message URL and content
-      if (reply && reply.content) {
-        if (reply.originalUrl) {
-          embed?.setDescription(`[**Reply to:**](${reply.originalUrl}) ` + reply.content);
-        } else {
-          embed?.setDescription(`**Reply to**: ` + reply.content);
-        }
-      } else if (reply && reply.originalUrl) {
-        embed?.setDescription(`[**Reply to**](${reply.originalUrl})`);
-      }
-
-      // Add attachments field
-      if (reply && reply.attachments.length > 0) {
-        embed?.setFooter({
-          text: "contains " + reply.attachments.map((a) => a + " "),
-        });
-      }
-
-      const avatarURL = message.author.generateAvatarURL({}, true);
-
-      await sendDiscordMessage(
-        webhook,
-        {
-          messageId: message._id,
-          authorId: message.author_id,
-          channelId: message.channel_id,
-        },
-        messageString,
-        message.author.username,
-        avatarURL,
-        embed,
-        false
-      );
-    }
-  } catch (e) {
-    npmlog.error("Discord", "Couldn't send a message to Discord");
-    npmlog.error("Discord", e);
-  }
-}
-
-/**
  * Send a message to Discord
  * @param webhook Discord webhook
  * @param sourceParams Revolt source message params
@@ -259,7 +123,7 @@ export async function sendDiscordMessage(
   content: string,
   username: string,
   avatarURL: string,
-  embed: EmbedBuilder,
+  embed: EmbedBuilder | null,
   allowUserPing: boolean
 ) {
   const webhookMessage = await webhook.send({

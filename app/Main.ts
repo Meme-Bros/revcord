@@ -6,7 +6,6 @@ import { DataTypes, Sequelize } from "sequelize";
 import { Bot } from "./Bot";
 import { CachedMessage, Mapping } from "./interfaces";
 import { MappingModel } from "./models/Mapping";
-import getMappings from "./util/mappings";
 
 export class Main {
   static mappings: Mapping[];
@@ -102,26 +101,17 @@ export class Main {
    * Start the Web server, Discord and Revolt bots
    */
   public async start(): Promise<void> {
-    let usingJson = false;
     try {
-      // Try to load JSON
-      const mappings = await getMappings();
-      Main.mappings = mappings;
-      usingJson = true;
-    } catch {
-      // Query the database instead
-      try {
-        Main.mappings = await this.initDb();
-      } catch (e) {
-        npmlog.error(
-          "db",
-          "A database error occurred. If you don't know what to do, try removing the `revcord.sqlite` file (will reset all your settings)."
-        );
-        npmlog.error("db", e);
-      }
-    } finally {
-      this.bot = new Bot(usingJson);
-      this.bot.start();
+      Main.mappings = await this.initDb();
+    } catch (e) {
+      npmlog.error(
+        "db",
+        "A database error occurred. If you don't know what to do, try removing the `revcord.sqlite` file (will reset all your settings)."
+      );
+      npmlog.error("db", e);
     }
+
+    this.bot = new Bot();
+    this.bot.start();
   }
 }

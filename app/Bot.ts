@@ -7,13 +7,11 @@ import { Main } from "./Main";
 import {
   handleDiscordChannelCreate,
   handleDiscordChannelDelete,
-  handleDiscordMessage,
   handleDiscordMessageDelete,
   handleDiscordMessageUpdate,
   initiateDiscordChannel,
 } from "./discord";
 import {
-  handleRevoltMessage,
   handleRevoltMessageDelete,
   handleRevoltMessageUpdate,
 } from "./revolt";
@@ -22,6 +20,8 @@ import { DiscordCommand, PartialDiscordMessage, RevoltCommand } from "./interfac
 import { slashCommands } from "./discord/commands";
 import UniversalExecutor from "./universalExecutor";
 import { revoltCommands } from "./revolt/commands";
+import MessageCreateEvent from "./events/MessageCreateEvent";
+import type IBotEvent from "./events/IBotEvent";
 
 export class Bot {
   private discord: DiscordClient;
@@ -33,7 +33,9 @@ export class Bot {
   private revoltCommands: Collection<string, RevoltCommand>;
   private executor: UniversalExecutor;
 
-  constructor(private usingJsonMappings: boolean) {}
+  private botEvents: Array<IBotEvent> = [
+    new MessageCreateEvent()
+  ];
 
   public async start() {
     this.setupDiscordBot();
@@ -75,13 +77,10 @@ export class Bot {
       // Convert commands into REST-friendly format
       this.commandsJson = this.commands.map((command) => command.data.toJSON());
 
-      // Do not allow commands when using mappings.json mode.
-      if (!this.usingJsonMappings) {
-        // Register commands for each guild
-        this.discord.guilds.cache.forEach((guild) => {
-          registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
-        });
-      }
+      // Register commands for each guild
+      this.discord.guilds.cache.forEach((guild) => {
+        registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
+      });
 
       // Create webhooks
       Main.mappings.forEach(async (mapping) => {
@@ -96,7 +95,7 @@ export class Bot {
     });
 
     this.discord.on("interactionCreate", async (interaction) => {
-      if (!interaction.isCommand() || this.usingJsonMappings) return;
+      if (! interaction.isCommand()) return;
 
       const command = this.commands.get(interaction.commandName);
 
@@ -114,14 +113,8 @@ export class Bot {
     });
 
     this.discord.on("guildCreate", (guild) => {
-      if (!this.usingJsonMappings) {
-        // Register slash commands in newly added server
-        registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
-      }
-    });
-
-    this.discord.on("messageCreate", (message) => {
-      handleDiscordMessage(this.revolt, this.discord, message);
+      // Register slash commands in newly added server
+      registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
     });
 
     this.discord.on("channelCreate", async (channel: TextChannel) => {
@@ -176,6 +169,17 @@ export class Bot {
       handleDiscordMessageDelete(this.revolt, message.id);
     });
 
+    for (const botEvent of this.botEvents) {
+      if (! botEvent.DISCORD_EVENT) {
+        // This event doesn't have a discord equivalent
+
+        continue;
+      }
+
+      console.log(`Registering event "${botEvent.DISCORD_EVENT}" (Discord -> Revolt)`);
+      this.discord.on(botEvent.DISCORD_EVENT, async (event) => await botEvent.discordToRevolt(this.revolt, this.discord, event));
+    }
+
     this.discord.login(process.env.DISCORD_TOKEN);
   }
 
@@ -205,47 +209,6 @@ export class Bot {
       });
     });
 
-    this.revolt.on("message", async (message) => {
-      if (typeof message.content !== "string") return;
-
-      const target = Main.mappings.find(
-        (mapping) => mapping.revolt === message.channel_id
-      );
-
-      if (message.content.toString().startsWith("rc!")) {
-        // Handle bot command
-        const args = message.content.toString().split(" ");
-        const commandName = args[0].slice("rc!".length);
-        args.shift();
-        const arg = args.join(" ");
-
-        // Try to find the command in collection
-        if (this.usingJsonMappings) return;
-
-        if (!this.revoltCommands) return;
-
-        const command = this.revoltCommands.get(commandName);
-
-        if (!command) {
-          npmlog.info("Revolt", "no command");
-          return;
-        }
-
-        try {
-          await command.execute(message, arg, this.executor);
-        } catch (e) {
-          npmlog.error("Revolt", "Error while executing command");
-          npmlog.error("Revolt", e);
-        }
-      } else if (
-        target &&
-        message.author_id !== message.client.user._id &&
-        (!message.author.bot || target.allowBots)
-      ) {
-        handleRevoltMessage(this.discord, this.revolt, message, target);
-      }
-    });
-
     this.revolt.on("message/update", async (message) => {
       if (message.author.bot !== null) return;
 
@@ -257,6 +220,19 @@ export class Bot {
     this.revolt.on("message/delete", async (id) => {
       handleRevoltMessageDelete(this.revolt, id);
     });
+
+    for (const botEvent of this.botEvents) {
+      if (! botEvent.REVOLT_EVENT) {
+        // This event doesn't have a revolt equivalent
+
+        continue;
+      }
+
+      console.log(`Registering event "${botEvent.REVOLT_EVENT}" (Revolt -> Discord)`);
+
+      // @ts-ignore: 2769
+      this.revolt.on(botEvent.REVOLT_EVENT, async (event) => await botEvent.revoltToDiscord(this.revolt, this.discord, event));
+    }
 
     this.revolt.loginBot(process.env.REVOLT_TOKEN);
   }

@@ -187,26 +187,6 @@ You can toggle whether messages sent by bots should be forwarded. It's enabled b
 
 Use either `rc!bots` or `/bots`
 
-### with mappings.json (not recommended)
-
-#### This is not recommended!
-
-1. Create a `mappings.json` file in the root directory.
-2. Use the following format:
-
-```json
-[
-  {
-    "discord": "discord_channel_id",
-    "revolt": "revolt_channel_id"
-  },
-  {
-    "discord": "another_discord_channel_id",
-    "revolt": "another_revolt_channel_id"
-  }
-]
-```
-
 ## 🔥 Troubleshooting <a id="troubleshooting"></a>
 
 ### `npm install` takes way too long, or `Please install sqlite3 package manually` (Raspberry Pi / 32-bit arm devices)
