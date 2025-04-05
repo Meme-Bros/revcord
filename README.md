@@ -22,12 +22,9 @@
   - [ ] Creating categories
   - [ ] Moving channels to categories
 - [ ] Bridge channels automatically
-  - [x] Automatically create channel (Discord -> Revolt)
-  - [x] Automatically create channel (Revolt -> Discord)
-  - [ ] Automatically update channel (Discord -> Revolt)
-  - [ ] Automatically update channel (Revolt -> Discord)
-  - [x] Automatically disconnect channel on delete (Discord -> Revolt)
-  - [ ] Automatically disconnect channel on delete (Revolt -> Discord)
+  - [x] Automatically create channel (Discord <-> Revolt)
+  - [ ] Automatically update channel (Discord <-> Revolt)
+  - [x] Automatically disconnect channel on delete (Discord <-> Revolt)
 - [ ] Bridge roles automatically ***(acts as a label only, permissions aren't synced!)***
   - [ ] Create role
   - [ ] Delete role

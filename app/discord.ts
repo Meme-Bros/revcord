@@ -136,42 +136,6 @@ export function transformDiscordChannelNameToRevolt(channelName: string): string
 }
 
 /**
- * Handle Discord channel delete in Revolt by unlinking (if linked)
- * @param revolt Revolt client
- * @param discord Discord client
- * @param channel Discord text channel
- */
-export async function handleDiscordChannelDelete(
-  revolt: RevoltClient,
-  discord: DiscordClient,
-  channel: TextChannel
-) {
-  const universalExecutor = new UniversalExecutor(discord, revolt);
-  const channelId = channel.id;
-
-  // Grab a random channel mapping item that already has this guild linked
-  const discordGuildMapping = await MappingModel.findOne({
-    where: {
-      discordChannel: channelId
-    }
-  });
-
-  if (! discordGuildMapping) {
-    console.error(`Attempted to automatically unlink deleted channel, but Discord channel ID "${channelId}" is unknown, so it's probably not connected to anything.`);
-
-    return;
-  }
-
-  await MappingModel.destroy({
-    where: {
-      discordChannel: channelId
-    }
-  });
-
-  console.log(`Automatically disconnected Discord channel "${channel.id}" from Revolt channel "${discordGuildMapping.revoltChannel}"`);
-}
-
-/**
  * Initialize webhook in a Discord channel
  * @param channel A Discord channel
  * @param mapping A mapping pair

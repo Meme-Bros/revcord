@@ -5,11 +5,10 @@ import npmlog from "npmlog";
 
 import { Main } from "./Main";
 import {
-  handleDiscordChannelDelete,
   initiateDiscordChannel,
 } from "./discord";
 import { registerSlashCommands } from "./discord/slash";
-import { DiscordCommand, PartialDiscordMessage, RevoltCommand } from "./interfaces";
+import { DiscordCommand, RevoltCommand } from "./interfaces";
 import { slashCommands } from "./discord/commands";
 import UniversalExecutor from "./universalExecutor";
 import { revoltCommands } from "./revolt/commands";
@@ -17,6 +16,7 @@ import MessageCreateEvent from "./events/MessageCreateEvent";
 import MessageUpdateEvent from "./events/MessageUpdateEvent";
 import MessageDeleteEvent from "./events/MessageDeleteEvent";
 import ChannelCreateEvent from "./events/ChannelCreateEvent";
+import ChannelDeleteEvent from "./events/ChannelDeleteEvent";
 import type IBotEvent from "./events/IBotEvent";
 
 export class Bot {
@@ -36,7 +36,7 @@ export class Bot {
     new MessageDeleteEvent(),
     new ChannelCreateEvent(),
     // new ChannelUpdateEvent(), // D=channelUpdate R=channel/update
-    // new ChannelDeleteEvent(), // D=channelDelete R=channel/delete (param1=channel ID)
+    new ChannelDeleteEvent(),
   ];
 
   public async start() {
@@ -117,16 +117,6 @@ export class Bot {
     this.discord.on("guildCreate", (guild) => {
       // Register slash commands in newly added server
       registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
-    });
-
-    this.discord.on("channelDelete", async (channel: TextChannel) => {
-      if (channel.type !== ChannelType.GuildText) {
-        console.log(`Discord channel "${channel.name}" was deleted, but it's not a text channel. Ignoring`);
-
-        return;
-      }
-
-      handleDiscordChannelDelete(this.revolt, this.discord, channel);
     });
 
     // Debugging

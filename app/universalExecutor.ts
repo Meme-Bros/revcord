@@ -120,8 +120,7 @@ export default class UniversalExecutor {
         allowBots: true,
       });
 
-      // Push into memory
-      Main.mappings.push(mapping);
+      await Main.refreshMapping();
     } catch (e) {
       npmlog.error("Discord", e);
       if (e instanceof InsufficientPermissionsError) {
@@ -144,11 +143,11 @@ export default class UniversalExecutor {
       const mapping = Main.mappings.find((mapping) => mapping.discord === channelId);
       const match = Main.mappings.map((mapping) => mapping.discord).indexOf(channelId);
       if (match > -1) {
-        // Remove the mapping from memory
-        Main.mappings.splice(match, 1);
-
-        // And from the database
+        // Remove from the database
         await MappingModel.destroy({ where: { discordChannel: channelId } });
+
+        // Update the mapping cache
+        await Main.refreshMapping();
 
         // And remove the webhook
         const channel = await this.discord.channels.fetch(mapping.discord);
@@ -169,11 +168,11 @@ export default class UniversalExecutor {
       const match = Main.mappings.map((mapping) => mapping.revolt).indexOf(channelId);
 
       if (match > -1) {
-        // Remove the mapping from memory
-        Main.mappings.splice(match, 1);
-
-        // And from the database
+        // Remove from the database
         await MappingModel.destroy({ where: { revoltChannel: channelId } });
+
+        // Update the mapping cache
+        await Main.refreshMapping();
 
         // And remove the webhook
         const channel = await this.discord.channels.fetch(mapping.discord);

@@ -38,7 +38,7 @@ export class Main {
   /**
    * Initialize Sequelize
    */
-  async initDb(): Promise<Mapping[]> {
+  async initDb(): Promise<void> {
     const sequelize = new Sequelize({
       dialect: "sqlite",
       storage: "revcord.sqlite",
@@ -85,14 +85,17 @@ export class Main {
 
     // Sync
     await sequelize.sync({ alter: true });
+  }
 
-    // Load mappings into memory
+  public static async refreshMapping(): Promise<Mapping[]> {
     const mappingsInDb = await MappingModel.findAll({});
     const mappings = mappingsInDb.map((mapping) => ({
       discord: mapping.discordChannel,
       revolt: mapping.revoltChannel,
       allowBots: mapping.allowBots,
     }));
+
+    Main.mappings = mappings;
 
     return mappings;
   }
@@ -102,7 +105,8 @@ export class Main {
    */
   public async start(): Promise<void> {
     try {
-      Main.mappings = await this.initDb();
+      await this.initDb();
+      await Main.refreshMapping();
     } catch (e) {
       npmlog.error(
         "db",

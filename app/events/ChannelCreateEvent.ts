@@ -18,6 +18,7 @@ import { MappingModel } from "../models/Mapping";
 import UniversalExecutor from "../universalExecutor";
 import { transformRevoltChannelNameToDiscord } from "../revolt";
 import { transformDiscordChannelNameToRevolt } from "../discord";
+import { Main } from "../Main";
 
 
 export default class ChannelCreateEvent implements IBotEvent
@@ -79,6 +80,7 @@ export default class ChannelCreateEvent implements IBotEvent
         await revolt.channels.fetch(channel._id);
 
         await universalExecutor.connect(discordChannel.id, channel._id);
+        await Main.refreshMapping();
 
         npmlog.info('Revolt', `Automatically linked Discord channel "${discordChannel.id}" to Revolt channel "${channel._id}"`);
 
@@ -153,6 +155,7 @@ export default class ChannelCreateEvent implements IBotEvent
         await revolt.channels.fetch(revoltChannel._id);
 
         await universalExecutor.connect(channel.id, revoltChannel._id);
+        await Main.refreshMapping();
 
         npmlog.info('Discord', `Automatically linked Discord channel "${channel.id}" to Revolt channel "${revoltChannel._id}"`);
 
