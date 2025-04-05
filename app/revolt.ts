@@ -9,6 +9,7 @@ import {
   RevoltEmojiPattern,
   RevoltPingPattern,
 } from "./util/regex";
+import { truncate } from "./util/truncate";
 
 /**
  * This file contains code taking care of things from Revolt to Discord
@@ -105,6 +106,11 @@ export async function formatMessage(revolt: RevoltClient, message: Message) {
   }
 
   return messageString;
+}
+
+export function transformRevoltChannelNameToDiscord(channelName: string): string
+{
+  return truncate(channelName, 100).replaceAll(' ', '-');
 }
 
 /**

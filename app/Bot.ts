@@ -5,7 +5,6 @@ import npmlog from "npmlog";
 
 import { Main } from "./Main";
 import {
-  handleDiscordChannelCreate,
   handleDiscordChannelDelete,
   initiateDiscordChannel,
 } from "./discord";
@@ -17,6 +16,7 @@ import { revoltCommands } from "./revolt/commands";
 import MessageCreateEvent from "./events/MessageCreateEvent";
 import MessageUpdateEvent from "./events/MessageUpdateEvent";
 import MessageDeleteEvent from "./events/MessageDeleteEvent";
+import ChannelCreateEvent from "./events/ChannelCreateEvent";
 import type IBotEvent from "./events/IBotEvent";
 
 export class Bot {
@@ -30,12 +30,13 @@ export class Bot {
   private executor: UniversalExecutor;
 
   private botEvents: Array<IBotEvent> = [
-    // TODO: Implement/migrate the commented events to the new structure
+    // TODO: Implement/migrate the commented events to the new structure (see /node_modules/revolt.js/esm/Client.d.ts)
     new MessageCreateEvent(),
     new MessageUpdateEvent(),
     new MessageDeleteEvent(),
-    // new ChannelCreateEvent(),
-    // new ChannelDeleteEvent(),
+    new ChannelCreateEvent(),
+    // new ChannelUpdateEvent(), // D=channelUpdate R=channel/update
+    // new ChannelDeleteEvent(), // D=channelDelete R=channel/delete (param1=channel ID)
   ];
 
   public async start() {
@@ -116,16 +117,6 @@ export class Bot {
     this.discord.on("guildCreate", (guild) => {
       // Register slash commands in newly added server
       registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
-    });
-
-    this.discord.on("channelCreate", async (channel: TextChannel) => {
-      if (channel.type !== ChannelType.GuildText) {
-        console.log(`Discord channel "${channel.name}" was created, but it's not a text channel. Ignoring`);
-
-        return;
-      }
-
-      handleDiscordChannelCreate(this.revolt, this.discord, channel);
     });
 
     this.discord.on("channelDelete", async (channel: TextChannel) => {
