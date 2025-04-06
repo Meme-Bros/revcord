@@ -101,7 +101,7 @@ export async function formatMessage(revolt: RevoltClient, message: Message) {
   // Handle attachments
   if (message.attachments !== null) {
     message.attachments.forEach((attachment) => {
-      messageString += revolt.generateFileURL(attachment) + "\n";
+      messageString += "[ . ](" + revolt.generateFileURL(attachment) + ")\n";
     });
   }
 

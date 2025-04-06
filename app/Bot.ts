@@ -16,6 +16,7 @@ import MessageCreateEvent from "./events/MessageCreateEvent";
 import MessageUpdateEvent from "./events/MessageUpdateEvent";
 import MessageDeleteEvent from "./events/MessageDeleteEvent";
 import ChannelCreateEvent from "./events/ChannelCreateEvent";
+import ChannelUpdateEvent from "./events/ChannelUpdateEvent";
 import ChannelDeleteEvent from "./events/ChannelDeleteEvent";
 import type IBotEvent from "./events/IBotEvent";
 
@@ -30,12 +31,11 @@ export class Bot {
   private executor: UniversalExecutor;
 
   private botEvents: Array<IBotEvent> = [
-    // TODO: Implement/migrate the commented events to the new structure (see /node_modules/revolt.js/esm/Client.d.ts)
     new MessageCreateEvent(),
     new MessageUpdateEvent(),
     new MessageDeleteEvent(),
     new ChannelCreateEvent(),
-    // new ChannelUpdateEvent(), // D=channelUpdate R=channel/update
+    new ChannelUpdateEvent(),
     new ChannelDeleteEvent(),
   ];
 

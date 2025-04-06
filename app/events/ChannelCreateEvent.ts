@@ -6,12 +6,12 @@ import {
     Client as DiscordClient,
     TextChannel as DiscordTextChannel,
     ChannelType as DiscordChannelType,
-    CategoryCreateChannelOptions as DiscordCategoryCreateChannelOptions,
+    GuildChannelCreateOptions as DiscordGuildChannelCreateOptions,
 } from "discord.js";
-import { AuditLogEvent as DiscordAuditLogEvent } from "discord-api-types/v10"
 import {
     DataCreateChannel as RevoltDataCreateChannel
 } from "revolt-api/esm/types";
+import { BridgedEventType } from "../bridgedEvents";
 import npmlog from "npmlog";
 import type IBotEvent from "./IBotEvent";
 import { MappingModel } from "../models/Mapping";
@@ -19,6 +19,7 @@ import UniversalExecutor from "../universalExecutor";
 import { transformRevoltChannelNameToDiscord } from "../revolt";
 import { transformDiscordChannelNameToRevolt } from "../discord";
 import { Main } from "../Main";
+import { promisedTimeout } from "../util/promise";
 
 
 export default class ChannelCreateEvent implements IBotEvent
@@ -29,6 +30,17 @@ export default class ChannelCreateEvent implements IBotEvent
     public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, channel: RevoltChannel, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {        
         if (channel.channel_type !== 'TextChannel') {
             npmlog.info('Revolt', `Revolt channel "${channel.name}" was created, but it's not a text channel. Ignoring`);
+
+            return;
+        }
+
+        // Wait for a bit, as we might be faster than the recentBridgedEvents
+        await promisedTimeout(1000);
+
+        const recentBridgedEvent = Main.recentBridgedEvents.findRecentEventForEitherWay(BridgedEventType.CHANNEL_CREATE, channel._id);
+
+        if (recentBridgedEvent) {
+            npmlog.warn('Revolt', `We won't create Discord channel "${channel.name}", as we very recently already handled something similar, ignoring as it's probably our own event`);
 
             return;
         }
@@ -58,7 +70,7 @@ export default class ChannelCreateEvent implements IBotEvent
             return;
         }
 
-        const discordChannelInformation: DiscordCategoryCreateChannelOptions = {
+        const discordChannelInformation: DiscordGuildChannelCreateOptions = {
             type: DiscordChannelType.GuildText,
             name: transformRevoltChannelNameToDiscord(channel.name),
             topic: channel.description,
@@ -74,6 +86,8 @@ export default class ChannelCreateEvent implements IBotEvent
         }
 
         const discordChannel = await discordGuild.channels.create(discordChannelInformation);
+
+        Main.recentBridgedEvents.addRecentEvent(BridgedEventType.CHANNEL_CREATE, channel._id, discordChannel.id);
 
         // Make sure the caches are up-to-date
         await discord.channels.fetch(discordChannel.id);
@@ -94,16 +108,13 @@ export default class ChannelCreateEvent implements IBotEvent
             return;
         }
 
-        const auditLogFetch = await channel.guild.fetchAuditLogs({limit: 1, type: DiscordAuditLogEvent.ChannelCreate });
-        const firstAuditLog = auditLogFetch.entries.first();
-        if (! firstAuditLog) {
-            npmlog.error('Discord', `We couldn't get the audit log of Discord channel ID "${channel.id}". Are we missing audit permissions?`);
+        // Wait for a bit, as we might be faster than the recentBridgedEvents
+        await promisedTimeout(1000);
 
-            return;
-        }
+        const recentBridgedEvent = Main.recentBridgedEvents.findRecentEventForEitherWay(BridgedEventType.CHANNEL_CREATE, channel.id);
 
-        if (firstAuditLog.executor.id === discord.user.id) {
-            npmlog.warn('Discord', `We won't create Revolt channel "${channel.name}", as the Discord ChannelCreate event was created by us.`);
+        if (recentBridgedEvent) {
+            npmlog.warn('Discord', `We won't create Revolt channel "${channel.name}", as we very recently already handled something similar, ignoring as it's probably our own event`);
 
             return;
         }
@@ -149,6 +160,8 @@ export default class ChannelCreateEvent implements IBotEvent
         }
 
         const revoltChannel = await revoltServer.createChannel(revoltChannelInformation);
+
+        Main.recentBridgedEvents.addRecentEvent(BridgedEventType.CHANNEL_CREATE, channel.id, revoltChannel._id);
 
         // Make sure the caches are up-to-date
         await discord.channels.fetch(channel.id);

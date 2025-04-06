@@ -21,27 +21,31 @@
 - [ ] Bridge categories automatically
   - [ ] Creating categories
   - [ ] Moving channels to categories
-- [ ] Bridge channels automatically
+- [x] Bridge channels automatically [^1]
   - [x] Automatically create channel (Discord <-> Revolt)
-  - [ ] Automatically update channel (Discord <-> Revolt)
+  - [x] Automatically update channel (Discord <-> Revolt) [^2]
   - [x] Automatically disconnect channel on delete (Discord <-> Revolt)
 - [ ] Bridge roles automatically ***(acts as a label only, permissions aren't synced!)***
   - [ ] Create role
+  - [ ] Update role
   - [ ] Delete role
-  - [ ] Delete role
+  - [ ] Assign role
+  - [ ] Unassign role
 - [x] Bridge attachments
   - [ ] Automatically reupload attachments to Revolt
 - [x] Bridge replies
 - [x] Bridge message edit and delete
 - [x] Bridge embeds
   - [ ] Include attachments
-- [x] Bridge emoji[^1]
+- [x] Bridge emoji [^3]
   - [ ] Automatically import emoji
   - [ ] Mapping Discord emoji to Revolt variants
 - [x] Seamlessly display user information
 - [ ] Initial import of channels & roles 
 
-[^1]: Revolt to Discord works, but limited to 3 emojis displayed to stop bombing with links. Animated emojis from Revolt will convert to static due to limits on Revolt's image backend
+[^1]: For this to function, you need to connect at least 1 channel manually. This is to create the initial link between the Discord Guild and Revolt Server. After this it will automatically create, update and disconnect channels at their corresponding events.
+[^2]: There is a cool-down timer on this to prevent bridged update loops, so very quick edits back-to-back might not be bridged. If your change was done too quickly and not synced, wait for a little while and then try to update it again, it should then sync everything properly.
+[^3]: Revolt to Discord works, but limited to 3 emojis displayed to stop bombing with links. Animated emojis from Revolt will convert to static due to limits on Revolt's image backend
 
 ![Screenshot - Revolt](docs/discord.png) ![Screenshot - Discord](docs/revolt.png)
 

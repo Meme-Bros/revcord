@@ -6,6 +6,7 @@ import { DataTypes, Sequelize } from "sequelize";
 import { Bot } from "./Bot";
 import { CachedMessage, Mapping } from "./interfaces";
 import { MappingModel } from "./models/Mapping";
+import { BridgedEvents } from "./bridgedEvents";
 
 export class Main {
   static mappings: Mapping[];
@@ -16,6 +17,10 @@ export class Main {
 
   /** Cache of messages sent by the bot from Revolt to Discord */
   static revoltCache: CachedMessage[];
+
+  /** List of recent bridged events that can be used to prevent handling
+   *  events multiple times that are hard to figure out the event author of */
+  static recentBridgedEvents: BridgedEvents;
 
   private bot: Bot;
 
@@ -33,6 +38,8 @@ export class Main {
 
     Main.discordCache = [];
     Main.revoltCache = [];
+
+    Main.recentBridgedEvents = new BridgedEvents();
   }
 
   /**
