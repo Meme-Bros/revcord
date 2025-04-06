@@ -47,74 +47,110 @@
 [^2]: There is a cool-down timer on this to prevent bridged update loops, so very quick edits back-to-back might not be bridged. If your change was done too quickly and not synced, wait for a little while and then try to update it again, it should then sync everything properly.
 [^3]: Revolt to Discord works, but limited to 3 emojis displayed to stop bombing with links. Animated emojis from Revolt will convert to static due to limits on Revolt's image backend
 
+> [!IMPORTANT]
+> While this bot should in theory work for multiple servers at a time, it has only been tested with 1 server (Discord + Revolt).
+> If there are any compatibility issues, please let us know.
+
 ![Screenshot - Revolt](docs/discord.png) ![Screenshot - Discord](docs/revolt.png)
 
 ## 🔩 Setup <a id="setup"></a>
 
-You can use [Docker](#using-docker) as well.
+1. Create a bot in Discord ([Guide](https://discordjs.guide/preparations/setting-up-a-bot-application.html#creating-your-bot)) 
 
-**Node v16.9+ is required!**
+2. **Important!** Make sure to select the following permissions in URL Generator when making an invite for your bot (Your bot in Discord Developers -> `OAuth2` -> `URL Generator`) (or if you're lazy, just select `Administrator`) Note **applications.commands**!
 
-Important: this bot is meant to be used in one server (Discord+Revolt), but can be used in more as long as they share the same admin.
+![permissions](docs/permissions.png)
+
+
+3. Enable the `Message Content Intent` under Bot -> Privileged Gateway Intents. If you forget to do this, the bot will crash with a `Used disallowed intents` message.
+
+![intent](docs/intent.png)
+
+4. Create a bot in Revolt (Open user settings -> `My Bots` -> `Create a bot`)
+5. **Important!** make sure to add the bot to a role that has the **Masquerade** permission!
+
+![revolt permissions](docs/mask.png)
+
+7. Invite the bot to to a Revolt and Discord server.
+8. Install & Start the bot using [docker](#docker) or [node](#node).
+
+
+
+## 🔩 Running the Bot <a id="running"></a>
+
+### Using Docker <a id="docker"></a>
+To help you get started creating a container from this image you can either use docker-compose or the docker cli.
+
+##### docker-compose (recommended) 
+```
+services:
+  revcord:
+    image: ghcr.io/meme-bros/revcord:latest
+    volumes:
+      - /path/to/revcord.sqlite:/app/revcord.sqlite:rw
+    environment:
+      - DISCORD_TOKEN="INSERT_DISCORD_TOKEN_HERE"
+      - REVOLT_TOKEN="INSERT_DISCORD_TOKEN_HERE"
+    restart: unless-stopped
+
+```
+then run with `docker compose up -d`
+
+##### docker cli
+```
+docker run -d \
+  --name revcord \
+  -v "/path/to/revcord.sqlite:/app/revcord.sqlite:rw" \
+  -e DISCORD_TOKEN="INSERT_DISCORD_TOKEN_HERE" \
+  -e REVOLT_TOKEN="INSERT_DISCORD_TOKEN_HERE" \
+  --restart unless-stopped \
+  ghcr.io/meme-bros/revcord:latest
+
+```
+
+#### Environment Variables
+
+|  Environment Variables  |                       Description                      | Required |
+|:-----------------------:|:------------------------------------------------------:|:--------:|
+|     `DISCORD_TOKEN`     |                    Discord bot token                   |     ✅    |
+|      `REVOLT_TOKEN`     |                    Revolt bot token                    |     ✅    |
+|        `API_URL`        |     Revolt API URL for custom self-hosted instances    |     ❌    |
+| `REVOLT_ATTACHMENT_URL` | Revolt attachment URL for custom self-hosted instances |     ❌    |
+
+### Using Node <a id="node"></a>
+> [!NOTE]
+> If you use docker you can skip to [Configuration](#configuration)
+
+> [!IMPORTANT]
+> **Node v16.9+ is required!**
 
 1. Clone this repository, install dependencies and build
 
 ```sh
-git clone https://github.com/mayudev/revcord
+git clone https://github.com/Meme-Bros/revcord.git
 cd revcord
 npm install
 npm run build
 ```
 
-2. Create a bot in Discord ([Guide](https://discordjs.guide/preparations/setting-up-a-bot-application.html#creating-your-bot)) and Revolt (Open user settings -> `My Bots` -> `Create a bot`)
-3. Place the relevant tokens in environment variables. The easiest way is to create a `.env` file (yes, a file called `.env`):
-
+2. Place the relevant tokens in environment variables. The easiest way is to copy .env.example file and fill in the following information
 ```
 DISCORD_TOKEN = ...
 REVOLT_TOKEN = ...
 ```
-
 Of course, replace ... with tokens.
 
-If you are running a self-hosted instance of Revolt, additionally set the `API_URL` and `REVOLT_ATTACHMENT_URL` variable:
+If you are running a self-hosted instance of Revolt, additionally set the `API_URL` and `REVOLT_ATTACHMENT_URL` variable to your own host:
 
 ```
-API_URL = https://api.revolt.chat
-REVOLT_ATTACHMENT_URL = https://autumn.revolt.chat
+API_URL = https://example.com/api
+REVOLT_ATTACHMENT_URL = https://example.com/autumn
 ```
 
-4. **Important!** Make sure to select the following permissions in URL Generator when making an invite for your bot (Your bot in Discord Developers -> `OAuth2` -> `URL Generator`) (or if you're lazy, just select `Administrator`) Note **applications.commands**!
+3. Start the bot using `npm start`
 
-![permissions](docs/permissions.png)
-
-5. Enable the `Message Content Intent` under Bot -> Privileged Gateway Intents. If you forget to do this, the bot will crash with a `Used disallowed intents` message.
-
-![intent](docs/intent.png)
-
-6. **Important!** On Revolt, make sure to add the bot to a role that has the **Masquerade** permission!
-
-![revolt permissions](docs/mask.png)
-
-7. Invite the bot to to a Revolt and Discord server.
-8. Start the bot using `npm start`.
-
-Note: it's recommended to use something like [pm2](https://pm2.keymetrics.io/) or [nodemon](https://nodemon.io/) to run the bot. Make sure to pass the `--experimental-specifier-resolution=node` flag to node manually, otherwise it will not run (it's included in the default start script).
-
-### Using Docker
-
-You need Docker and docker-compose installed.
-
-Follow the steps above to create a `.env` file[^4]. You do not have to run `npm install` and `npm run build`, obviously. Also, make sure your bots have all the required permissions as explained above.
-
-Before you run docker-compose, use `touch revcord.sqlite` to create the database file and leave it empty.
-
-Then you should be ready to go.
-
-```
-docker-compose up -d
-```
-
-[^4]: Alternatively, you can edit the `docker-compose.yml` file appropriately. Make sure to remove `./.env:/app/.env` below `volumes:` so it won't complain when you don't have a `.env` file.
+> [!NOTE] 
+> it's recommended to use something like [pm2](https://pm2.keymetrics.io/) or [nodemon](https://nodemon.io/) to run the bot. Make sure to pass the `--experimental-specifier-resolution=node` flag to node manually, otherwise it will not run (it's included in the default start script).
 
 ## 🔧 Configuration <a id="configuration"></a>
 
