@@ -104,7 +104,7 @@ Note: it's recommended to use something like [pm2](https://pm2.keymetrics.io/) o
 
 You need Docker and docker-compose installed.
 
-Follow the steps above to create a `.env` file[^2]. You do not have to run `npm install` and `npm run build`, obviously. Also, make sure your bots have all the required permissions as explained above.
+Follow the steps above to create a `.env` file[^4]. You do not have to run `npm install` and `npm run build`, obviously. Also, make sure your bots have all the required permissions as explained above.
 
 Before you run docker-compose, use `touch revcord.sqlite` to create the database file and leave it empty.
 
@@ -114,7 +114,7 @@ Then you should be ready to go.
 docker-compose up -d
 ```
 
-[^2]: Alternatively, you can edit the `docker-compose.yml` file appropriately. Make sure to remove `./.env:/app/.env` below `volumes:` so it won't complain when you don't have a `.env` file.
+[^4]: Alternatively, you can edit the `docker-compose.yml` file appropriately. Make sure to remove `./.env:/app/.env` below `volumes:` so it won't complain when you don't have a `.env` file.
 
 ## 🔧 Configuration <a id="configuration"></a>
 
