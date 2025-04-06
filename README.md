@@ -47,6 +47,10 @@
 [^2]: There is a cool-down timer on this to prevent bridged update loops, so very quick edits back-to-back might not be bridged. If your change was done too quickly and not synced, wait for a little while and then try to update it again, it should then sync everything properly.
 [^3]: Revolt to Discord works, but limited to 3 emojis displayed to stop bombing with links. Animated emojis from Revolt will convert to static due to limits on Revolt's image backend
 
+> [!IMPORTANT]
+> While this bot should in theory work for multiple servers at a time, it has only been tested with 1 server (Discord + Revolt).
+> If there are any compatibility issues, please let us know.
+
 ![Screenshot - Revolt](docs/discord.png) ![Screenshot - Discord](docs/revolt.png)
 
 ## 🔩 Setup <a id="setup"></a>
@@ -68,7 +72,8 @@
 ![revolt permissions](docs/mask.png)
 
 7. Invite the bot to to a Revolt and Discord server.
-8. Install & Start the bot using [docker](#docker) or [node](#node)`.
+8. Install & Start the bot using [docker](#docker) or [node](#node).
+
 
 
 ## 🔩 Running the Bot <a id="running"></a>
@@ -89,6 +94,7 @@ services:
     restart: unless-stopped
 
 ```
+then run with `docker compose up -d`
 
 ##### docker cli
 ```
@@ -104,18 +110,20 @@ docker run -d \
 
 #### Environment Variables
 
-| Environment Variables | Description | Required |
-| :----: | :----: | :----: |
-| `DISCORD_TOKEN` | Discord bot token | ✅ |
-| `REVOLT_TOKEN` | Revolt bot token | ✅ |
-| `API_URL` | Revolt API URL for custom self-hosted instances | ❌ |
-| `REVOLT_ATTACHMENT_URL` | Revolt attachment URL for custom self-hosted instances | ❌ |
+|  Environment Variables  |                       Description                      | Required |
+|:-----------------------:|:------------------------------------------------------:|:--------:|
+|     `DISCORD_TOKEN`     |                    Discord bot token                   |     ✅    |
+|      `REVOLT_TOKEN`     |                    Revolt bot token                    |     ✅    |
+|        `API_URL`        |     Revolt API URL for custom self-hosted instances    |     ❌    |
+| `REVOLT_ATTACHMENT_URL` | Revolt attachment URL for custom self-hosted instances |     ❌    |
 
 
 ### Using Node <a id="node"></a>
-Note: If you use docker you can skip to [Configuration](#configuration)
-**Node v16.9+ is required!**
-Important: this bot is meant to be used in one server (Discord+Revolt), but can be used in more as long as they share the same admin.
+> [!NOTE]
+> If you use docker you can skip to [Configuration](#configuration)
+
+> [!IMPORTANT]
+> **Node v16.9+ is required!**
 
 1. Clone this repository, install dependencies and build
 
@@ -141,7 +149,9 @@ REVOLT_ATTACHMENT_URL = https://example.com/autumn
 ```
 
 3. Start the bot using `npm start`
-Note: it's recommended to use something like [pm2](https://pm2.keymetrics.io/) or [nodemon](https://nodemon.io/) to run the bot. Make sure to pass the `--experimental-specifier-resolution=node` flag to node manually, otherwise it will not run (it's included in the default start script).
+
+> [!NOTE] 
+> it's recommended to use something like [pm2](https://pm2.keymetrics.io/) or [nodemon](https://nodemon.io/) to run the bot. Make sure to pass the `--experimental-specifier-resolution=node` flag to node manually, otherwise it will not run (it's included in the default start script).
 
 ## 🔧 Configuration <a id="configuration"></a>
 
