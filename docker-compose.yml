@@ -1,11 +1,9 @@
-version: "3.7"
-
 services:
   revcord:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/meme-bros/revcord:latest
     volumes:
       - ./revcord.sqlite:/app/revcord.sqlite:rw
-      - ./.env:/app/.env
+    environment:
+      - DISCORD_TOKEN="INSERT_DISCORD_TOKEN_HERE"
+      - REVOLT_TOKEN="INSERT_DISCORD_TOKEN_HERE"
     restart: unless-stopped
