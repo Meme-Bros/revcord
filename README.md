@@ -117,7 +117,6 @@ docker run -d \
 |        `API_URL`        |     Revolt API URL for custom self-hosted instances    |     ❌    |
 | `REVOLT_ATTACHMENT_URL` | Revolt attachment URL for custom self-hosted instances |     ❌    |
 
-
 ### Using Node <a id="node"></a>
 > [!NOTE]
 > If you use docker you can skip to [Configuration](#configuration)
