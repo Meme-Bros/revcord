@@ -5,6 +5,8 @@ export class MappingModel extends Model<
   InferCreationAttributes<MappingModel>
 > {
   declare id: number;
+  declare discordGuild: string;
+  declare revoltServer: string;
   declare discordChannel: string;
   declare revoltChannel: string;
   declare discordChannelName: string;

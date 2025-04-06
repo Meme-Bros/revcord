@@ -1,25 +1,24 @@
-import { Client as DiscordClient, Collection, GatewayIntentBits } from "discord.js";
+import { Client as DiscordClient, Collection, GatewayIntentBits, ChannelType, Channel, TextChannel } from "discord.js";
 import { Client as RevoltClient } from "revolt.js";
 import { REST } from "@discordjs/rest";
 import npmlog from "npmlog";
 
 import { Main } from "./Main";
 import {
-  handleDiscordMessage,
-  handleDiscordMessageDelete,
-  handleDiscordMessageUpdate,
   initiateDiscordChannel,
 } from "./discord";
-import {
-  handleRevoltMessage,
-  handleRevoltMessageDelete,
-  handleRevoltMessageUpdate,
-} from "./revolt";
 import { registerSlashCommands } from "./discord/slash";
-import { DiscordCommand, PartialDiscordMessage, RevoltCommand } from "./interfaces";
+import { DiscordCommand, RevoltCommand } from "./interfaces";
 import { slashCommands } from "./discord/commands";
 import UniversalExecutor from "./universalExecutor";
 import { revoltCommands } from "./revolt/commands";
+import MessageCreateEvent from "./events/MessageCreateEvent";
+import MessageUpdateEvent from "./events/MessageUpdateEvent";
+import MessageDeleteEvent from "./events/MessageDeleteEvent";
+import ChannelCreateEvent from "./events/ChannelCreateEvent";
+import ChannelUpdateEvent from "./events/ChannelUpdateEvent";
+import ChannelDeleteEvent from "./events/ChannelDeleteEvent";
+import type IBotEvent from "./events/IBotEvent";
 
 export class Bot {
   private discord: DiscordClient;
@@ -31,7 +30,14 @@ export class Bot {
   private revoltCommands: Collection<string, RevoltCommand>;
   private executor: UniversalExecutor;
 
-  constructor(private usingJsonMappings: boolean) {}
+  private botEvents: Array<IBotEvent> = [
+    new MessageCreateEvent(),
+    new MessageUpdateEvent(),
+    new MessageDeleteEvent(),
+    new ChannelCreateEvent(),
+    new ChannelUpdateEvent(),
+    new ChannelDeleteEvent(),
+  ];
 
   public async start() {
     this.setupDiscordBot();
@@ -73,13 +79,10 @@ export class Bot {
       // Convert commands into REST-friendly format
       this.commandsJson = this.commands.map((command) => command.data.toJSON());
 
-      // Do not allow commands when using mappings.json mode.
-      if (!this.usingJsonMappings) {
-        // Register commands for each guild
-        this.discord.guilds.cache.forEach((guild) => {
-          registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
-        });
-      }
+      // Register commands for each guild
+      this.discord.guilds.cache.forEach((guild) => {
+        registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
+      });
 
       // Create webhooks
       Main.mappings.forEach(async (mapping) => {
@@ -94,7 +97,7 @@ export class Bot {
     });
 
     this.discord.on("interactionCreate", async (interaction) => {
-      if (!interaction.isCommand() || this.usingJsonMappings) return;
+      if (! interaction.isCommand()) return;
 
       const command = this.commands.get(interaction.commandName);
 
@@ -112,14 +115,8 @@ export class Bot {
     });
 
     this.discord.on("guildCreate", (guild) => {
-      if (!this.usingJsonMappings) {
-        // Register slash commands in newly added server
-        registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
-      }
-    });
-
-    this.discord.on("messageCreate", (message) => {
-      handleDiscordMessage(this.revolt, this.discord, message);
+      // Register slash commands in newly added server
+      registerSlashCommands(this.rest, this.discord, guild.id, this.commandsJson);
     });
 
     // Debugging
@@ -132,27 +129,16 @@ export class Bot {
       }
     }
 
-    this.discord.on("messageUpdate", (oldMessage, newMessage) => {
-      if (oldMessage.applicationId === this.discord.user.id) return;
+    for (const botEvent of this.botEvents) {
+      if (! botEvent.DISCORD_EVENT) {
+        // This event doesn't have a discord equivalent
 
-      const partialMessage: PartialDiscordMessage = {
-        author: oldMessage.author,
-        attachments: oldMessage.attachments,
-        channelId: oldMessage.channelId,
-        content: newMessage.content,
-        embeds: newMessage.embeds,
-        id: newMessage.id,
-        mentions: newMessage.mentions,
-      };
+        continue;
+      }
 
-      handleDiscordMessageUpdate(this.revolt, partialMessage);
-    });
-
-    this.discord.on("messageDelete", (message) => {
-      if (message.applicationId === this.discord.user.id) return;
-
-      handleDiscordMessageDelete(this.revolt, message.id);
-    });
+      console.log(`Registering D->R event "${botEvent.DISCORD_EVENT}"`);
+      this.discord.on(botEvent.DISCORD_EVENT, async (eventParameterOne, eventParameterTwo, eventParameterThree) => await botEvent.discordToRevolt(this.revolt, this.discord, eventParameterOne, eventParameterTwo, eventParameterThree));
+    }
 
     this.discord.login(process.env.DISCORD_TOKEN);
   }
@@ -183,58 +169,18 @@ export class Bot {
       });
     });
 
-    this.revolt.on("message", async (message) => {
-      if (typeof message.content !== "string") return;
+    for (const botEvent of this.botEvents) {
+      if (! botEvent.REVOLT_EVENT) {
+        // This event doesn't have a revolt equivalent
 
-      const target = Main.mappings.find(
-        (mapping) => mapping.revolt === message.channel_id
-      );
-
-      if (message.content.toString().startsWith("rc!")) {
-        // Handle bot command
-        const args = message.content.toString().split(" ");
-        const commandName = args[0].slice("rc!".length);
-        args.shift();
-        const arg = args.join(" ");
-
-        // Try to find the command in collection
-        if (this.usingJsonMappings) return;
-
-        if (!this.revoltCommands) return;
-
-        const command = this.revoltCommands.get(commandName);
-
-        if (!command) {
-          npmlog.info("Revolt", "no command");
-          return;
-        }
-
-        try {
-          await command.execute(message, arg, this.executor);
-        } catch (e) {
-          npmlog.error("Revolt", "Error while executing command");
-          npmlog.error("Revolt", e);
-        }
-      } else if (
-        target &&
-        message.author_id !== message.client.user._id &&
-        (!message.author.bot || target.allowBots)
-      ) {
-        handleRevoltMessage(this.discord, this.revolt, message, target);
+        continue;
       }
-    });
 
-    this.revolt.on("message/update", async (message) => {
-      if (message.author.bot !== null) return;
+      console.log(`Registering R->D event "${botEvent.REVOLT_EVENT}"`);
 
-      if (typeof message.content != "string") return;
-
-      handleRevoltMessageUpdate(this.revolt, message);
-    });
-
-    this.revolt.on("message/delete", async (id) => {
-      handleRevoltMessageDelete(this.revolt, id);
-    });
+      // @ts-ignore: 2769
+      this.revolt.on(botEvent.REVOLT_EVENT, async (eventParameterOne, eventParameterTwo, eventParameterThree) => await botEvent.revoltToDiscord(this.revolt, this.discord, eventParameterOne, eventParameterTwo, eventParameterThree));
+    }
 
     this.revolt.loginBot(process.env.REVOLT_TOKEN);
   }

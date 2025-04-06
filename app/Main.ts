@@ -6,7 +6,7 @@ import { DataTypes, Sequelize } from "sequelize";
 import { Bot } from "./Bot";
 import { CachedMessage, Mapping } from "./interfaces";
 import { MappingModel } from "./models/Mapping";
-import getMappings from "./util/mappings";
+import { BridgedEvents } from "./bridgedEvents";
 
 export class Main {
   static mappings: Mapping[];
@@ -17,6 +17,10 @@ export class Main {
 
   /** Cache of messages sent by the bot from Revolt to Discord */
   static revoltCache: CachedMessage[];
+
+  /** List of recent bridged events that can be used to prevent handling
+   *  events multiple times that are hard to figure out the event author of */
+  static recentBridgedEvents: BridgedEvents;
 
   private bot: Bot;
 
@@ -34,12 +38,14 @@ export class Main {
 
     Main.discordCache = [];
     Main.revoltCache = [];
+
+    Main.recentBridgedEvents = new BridgedEvents();
   }
 
   /**
    * Initialize Sequelize
    */
-  async initDb(): Promise<Mapping[]> {
+  async initDb(): Promise<void> {
     const sequelize = new Sequelize({
       dialect: "sqlite",
       storage: "revcord.sqlite",
@@ -57,6 +63,12 @@ export class Main {
           type: DataTypes.INTEGER,
           autoIncrement: true,
           primaryKey: true,
+        },
+        revoltServer: {
+          type: DataTypes.STRING,
+        },
+        discordGuild: {
+          type: DataTypes.STRING,
         },
         discordChannel: {
           type: DataTypes.STRING,
@@ -80,14 +92,17 @@ export class Main {
 
     // Sync
     await sequelize.sync({ alter: true });
+  }
 
-    // Load mappings into memory
+  public static async refreshMapping(): Promise<Mapping[]> {
     const mappingsInDb = await MappingModel.findAll({});
     const mappings = mappingsInDb.map((mapping) => ({
       discord: mapping.discordChannel,
       revolt: mapping.revoltChannel,
       allowBots: mapping.allowBots,
     }));
+
+    Main.mappings = mappings;
 
     return mappings;
   }
@@ -96,26 +111,18 @@ export class Main {
    * Start the Web server, Discord and Revolt bots
    */
   public async start(): Promise<void> {
-    let usingJson = false;
     try {
-      // Try to load JSON
-      const mappings = await getMappings();
-      Main.mappings = mappings;
-      usingJson = true;
-    } catch {
-      // Query the database instead
-      try {
-        Main.mappings = await this.initDb();
-      } catch (e) {
-        npmlog.error(
-          "db",
-          "A database error occurred. If you don't know what to do, try removing the `revcord.sqlite` file (will reset all your settings)."
-        );
-        npmlog.error("db", e);
-      }
-    } finally {
-      this.bot = new Bot(usingJson);
-      this.bot.start();
+      await this.initDb();
+      await Main.refreshMapping();
+    } catch (e) {
+      npmlog.error(
+        "db",
+        "A database error occurred. If you don't know what to do, try removing the `revcord.sqlite` file (will reset all your settings)."
+      );
+      npmlog.error("db", e);
     }
+
+    this.bot = new Bot();
+    this.bot.start();
   }
 }
