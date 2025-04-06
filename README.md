@@ -47,11 +47,18 @@
 [^2]: There is a cool-down timer on this to prevent bridged update loops, so very quick edits back-to-back might not be bridged. If your change was done too quickly and not synced, wait for a little while and then try to update it again, it should then sync everything properly.
 [^3]: Revolt to Discord works, but limited to 3 emojis displayed to stop bombing with links. Animated emojis from Revolt will convert to static due to limits on Revolt's image backend
 
-> [!IMPORTANT]
-> While this bot should in theory work for multiple servers at a time, it has only been tested with 1 server (Discord + Revolt).
+![Screenshot - Revolt](docs/discord.png) ![Screenshot - Discord](docs/revolt.png)
+
+> [!WARNING]
+> While this bot should be able to bridge multiple server's in theory, it has only been tested with 1 server _(1 Discord guild connected to 1 Revolt server)_.
+>
 > If there are any compatibility issues, please let us know.
 
-![Screenshot - Revolt](docs/discord.png) ![Screenshot - Discord](docs/revolt.png)
+> [!WARNING]
+> Bridging 1 server to multiple servers is not supported.
+>
+> For example, bridging 1 Revolt server to 2 Discord guild's.
+
 
 ## 🔩 Setup <a id="setup"></a>
 
