@@ -5,5 +5,5 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./revcord.sqlite:/app/revcord.sqlite:rw
-      - ./.env:/app/.env
+      - ./.env:/app/.env:ro
     restart: unless-stopped
