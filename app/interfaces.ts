@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
+import { SlashCommandBuilder, SlashCommandOptionsOnlyBuilder } from "@discordjs/builders";
 import {
   Attachment,
   Collection,
@@ -19,6 +19,7 @@ export interface Mapping {
 export interface DiscordCommand {
   data:
   | SlashCommandBuilder
+  | SlashCommandOptionsOnlyBuilder
   | Omit<SlashCommandBuilder, "addSubcommandGroup" | "addSubcommand">;
   execute(interaction: CommandInteraction, executor: UniversalExecutor): Promise<void>;
 }
