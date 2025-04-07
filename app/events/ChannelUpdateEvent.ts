@@ -1,6 +1,8 @@
 import {
     Client as RevoltClient,
     Channel as RevoltChannel,
+    API,
+    Channel
 } from "revolt.js";
 import {
     Client as DiscordClient,
@@ -8,9 +10,6 @@ import {
     ChannelType as DiscordChannelType,
     GuildChannelEditOptions,
 } from "discord.js";
-import {
-    DataEditChannel as RevoltDataEditChannel,
-} from "revolt-api/esm/types";
 import npmlog from "npmlog";
 import type IBotEvent from "./IBotEvent";
 import { MappingModel } from "../models/Mapping";
@@ -20,128 +19,79 @@ import { Main } from "../Main";
 import { BridgedEventType } from "../bridgedEvents";
 import { promisedTimeout } from "../util/promise";
 
-
-export default class ChannelUpdateEvent implements IBotEvent
-{
+export default class ChannelUpdateEvent implements IBotEvent {
     public DISCORD_EVENT = 'channelUpdate';
     public REVOLT_EVENT = 'channel/update';
 
-    public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, channel: RevoltChannel, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {        
-        // TODO: Troubleshoot why the second update of the same channel takes a really long time
-
-        if (channel.channel_type !== 'TextChannel') {
-            npmlog.info('Revolt', `Revolt channel "${channel.name}" was updated, but it's not a text channel. Ignoring`);
-        
+    public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, channel: RevoltChannel, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {
+        if (channel.type !== 'TextChannel' || !('server' in channel)) {
+            // We only care about text channels in servers, ignore
             return;
         }
 
-        const channelId = channel._id;
+        const target = Main.mappings.find(
+            (mapping) => mapping.revolt === channel.id
+        );
 
-        const revoltServerMapping = await MappingModel.findOne({
-            where: {
-                revoltChannel: channelId
-            }
-        });
-
-        if (! revoltServerMapping) {
-            npmlog.info('Revolt', `Attempted to automatically update channel, but Revolt channel ID "${channelId}" is unknown, so it's probably not connected to anything.`);
-
+        if (!target) {
+            // We don't have this channel mapped to anything, ignore
             return;
         }
 
-        const discordGuildId = revoltServerMapping.discordGuild;
-        const discordGuild = await discord.guilds.fetch(discordGuildId);
+        const discordChannel = await discord.channels.fetch(target.discord);
 
-        if (! discordGuild) {
-            npmlog.error('Revolt', `We can't find Discord guild with ID "${discordGuildId}".`);
-
+        if (!discordChannel) {
+            // We don't have this channel mapped to anything, ignore
             return;
         }
 
-        const discordChannelId = revoltServerMapping.discordChannel;
-        const discordChannel = await discordGuild.channels.fetch(discordChannelId);
-
-        if (! discordChannel) {
-            npmlog.error('Revolt', `We can't find Discord channel with ID "${discordChannelId}".`);
-
+        if (!(discordChannel instanceof DiscordTextChannel)) {
+            // We only care about text channels, ignore
             return;
         }
 
-        // Wait for a bit, as we might be faster than the recentBridgedEvents
-        await promisedTimeout(1000);
-
-        const recentBridgedEvent = Main.recentBridgedEvents.findRecentEventForEitherWay(BridgedEventType.CHANNEL_UPDATE, channelId);
-
-        if (recentBridgedEvent) {
-            npmlog.warn('Revolt', `We won't update Discord channel "${discordChannel.name}", as we very recently already handled something similar, ignoring as it's probably our own event`);
-
-            return;
-        }
-
-        const discordChannelInformation: GuildChannelEditOptions = {
+        const options: GuildChannelEditOptions = {
             name: transformRevoltChannelNameToDiscord(channel.name),
-            topic: channel.description,
-            nsfw: channel.nsfw
+            nsfw: false, // Default to false since nsfw is not available in v7
+            topic: undefined, // Default to undefined since description is not available in v7
         };
 
-        await discordChannel.edit(discordChannelInformation);
-
-        Main.recentBridgedEvents.addRecentEvent(BridgedEventType.CHANNEL_UPDATE, channel._id, discordChannel.id);
-
-        npmlog.info('Revolt', `Automatically updated Discord channel "${revoltServerMapping.discordChannel}" with Revolt channel "${channelId}"`);
+        try {
+            await discordChannel.edit(options);
+        } catch (e) {
+            npmlog.error("Discord", "Failed to update channel");
+            npmlog.error("Discord", e);
+        }
     }
 
-    public async discordToRevolt(revolt: RevoltClient, discord: DiscordClient, oldChannel: DiscordTextChannel, newChannel: DiscordTextChannel, eventParameterThree: undefined): Promise<void> {        
-        if (oldChannel.type !== DiscordChannelType.GuildText) {
-            npmlog.info('Discord', `Discord channel "${oldChannel.name}" was updated, but it's not a text channel. Ignoring`);
+    public async discordToRevolt(revolt: RevoltClient, discord: DiscordClient, oldChannel: DiscordTextChannel, newChannel: DiscordTextChannel, eventParameterThree: undefined): Promise<void> {
+        const target = Main.mappings.find(
+            (mapping) => mapping.discord === newChannel.id
+        );
 
+        if (!target) {
+            // We don't have this channel mapped to anything, ignore
             return;
         }
 
-        const channelId = oldChannel.id;
+        const revoltChannel = revolt.channels.get(target.revolt);
 
-        const discordGuildMapping = await MappingModel.findOne({
-            where: {
-              discordChannel: channelId
-            }
-        });
-
-        if (! discordGuildMapping) {
-            npmlog.info('Discord', `Attempted to automatically update channel, but Discord channel ID "${channelId}" is unknown, so it's probably not connected to anything.`);
-
+        if (!revoltChannel || !('server' in revoltChannel)) {
+            // We don't have this channel mapped to anything, ignore
             return;
         }
 
-        const revoltChannelId = discordGuildMapping.revoltChannel;
-        const revoltChannel = await revolt.channels.fetch(revoltChannelId);
-
-        if (! revoltChannel) {
-            npmlog.error('Discord', `We can't find Revolt channel with ID "${revoltChannelId}".`);
-
-            return;
-        }
-
-        // Wait for a bit, as we might be faster than the recentBridgedEvents
-        await promisedTimeout(1000);
-
-        const recentBridgedEvent = Main.recentBridgedEvents.findRecentEventForEitherWay(BridgedEventType.CHANNEL_UPDATE, channelId);
-
-        if (recentBridgedEvent) {
-            npmlog.warn('Discord', `We won't update Revolt channel "${revoltChannel.name}", as we very recently already handled something similar, ignoring as it's probably our own event`);
-
-            return;
-        }
-
-        const revoltChannelInformation: RevoltDataEditChannel = {
+        const data: API.DataEditChannel = {
             name: transformDiscordChannelNameToRevolt(newChannel.name),
-            description: newChannel.topic,
-            nsfw: newChannel.nsfw
+            description: newChannel.topic || undefined,
+            nsfw: newChannel.nsfw || false,
+        };
+
+        try {
+            await revolt.api.patch(`/channels/${revoltChannel.id}`, data);
+        } catch (e) {
+            npmlog.error("Revolt", "Failed to update channel");
+            npmlog.error("Revolt", e);
         }
-
-        await revoltChannel.edit(revoltChannelInformation);
-
-        Main.recentBridgedEvents.addRecentEvent(BridgedEventType.CHANNEL_UPDATE, newChannel.id, revoltChannel._id);
-
-        npmlog.info('Discord', `Automatically updated Revolt channel "${discordGuildMapping.revoltChannel}" with Discord channel "${channelId}"`);
     }
 }

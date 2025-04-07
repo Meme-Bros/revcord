@@ -1,8 +1,6 @@
 import { Client as DiscordClient, TextChannel } from "discord.js";
 import npmlog from "npmlog";
-import { Client as RevoltClient } from "revolt.js";
-import { Channel } from "revolt.js/dist/maps/Channels";
-import { Message as RevoltMessage } from "revolt.js/dist/maps/Messages";
+import { Client as RevoltClient, Channel, Message as RevoltMessage } from "revolt.js";
 import { initiateDiscordChannel, unregisterDiscordChannel } from "./discord";
 import { InsufficientPermissionsError } from "./errors";
 import { ConnectionPair, Mapping } from "./interfaces";
@@ -10,15 +8,21 @@ import { Main } from "./Main";
 import { MappingModel } from "./models/Mapping";
 import { sendDiscordMessage } from "./revolt";
 
-export class ConnectionError extends Error {}
+export class ConnectionError extends Error { }
 
-export class EntityNotFoundError extends Error {}
+export class EntityNotFoundError extends Error { }
 
 export type Platforms = "discord" | "revolt";
 
 // I've commited chuunibyou with this name
 export default class UniversalExecutor {
-  constructor(private discord: DiscordClient, private revolt: RevoltClient) {}
+  private discord: DiscordClient;
+  private revolt: RevoltClient;
+
+  constructor(discord: DiscordClient, revolt: RevoltClient) {
+    this.discord = discord;
+    this.revolt = revolt;
+  }
 
   /**
    * Create a new bridge
@@ -44,7 +48,7 @@ export default class UniversalExecutor {
 
       if (!target) throw new ConnectionError("Revolt channel not found.");
       else {
-        revoltTarget = target._id;
+        revoltTarget = target.id;
         revoltChannelName = target.name;
       }
     } else {
@@ -84,103 +88,66 @@ export default class UniversalExecutor {
       }
     }
 
-    /*
-      By this point, both discordTarget and revoltTarget contain correct channel IDs.
-    */
+    // Save mapping
+    await MappingModel.create({
+      discordGuild: discordChannel.guildId,
+      discordChannel: discordTarget,
+      revoltServer: revoltChannel.serverId,
+      revoltChannel: revoltTarget,
+      discordChannelName,
+      revoltChannelName,
+    });
 
-    // Try to find if an existing mapping already exists
-    const existingMapping = Main.mappings.find(
-      (mapping) => mapping.discord === discordTarget || mapping.revolt === revoltTarget
-    );
-
-    if (existingMapping) {
-      throw new ConnectionError(
-        "Either the Revolt or Discord channel is already bridged. Use the `disconnect` command and then try again."
-      );
-    }
-
-    const mapping = {
+    const mapping: Mapping = {
       discord: discordTarget,
       revolt: revoltTarget,
-      allowBots: true,
     };
 
-    // Initiate Discord channel (setup webhooks)
-    try {
-      await initiateDiscordChannel(discordChannel, mapping);
+    Main.mappings.push(mapping);
 
-      // Insert into database
-      await MappingModel.create({
-        discordGuild: discordChannel.guildId,
-        revoltServer: revoltChannel.server_id,
-        discordChannel: discordTarget,
-        revoltChannel: revoltTarget,
-        discordChannelName: discordChannelName,
-        revoltChannelName: revoltChannelName,
-        allowBots: true,
-      });
-
-      await Main.refreshMapping();
-    } catch (e) {
-      npmlog.error("Discord", e);
-      if (e instanceof InsufficientPermissionsError) {
-        throw new ConnectionError(e.message);
-      } else {
-        throw new ConnectionError(
-          "An unexpected error occurred while setting up the webhook. Check the console for details."
-        );
-      }
-    }
+    // Initialize webhook
+    await initiateDiscordChannel(discordChannel, mapping);
   }
 
   /**
-   * Remove a bridge
-   * @param platform Platform the command is being called from
-   * @param channelId ID for channel the command is being called from
+   * Disconnect a bridge
+   * @param source Source platform
+   * @param channelId Channel ID
    */
-  async disconnect(platform: Platforms, channelId: string) {
-    if (platform === "discord") {
-      const mapping = Main.mappings.find((mapping) => mapping.discord === channelId);
-      const match = Main.mappings.map((mapping) => mapping.discord).indexOf(channelId);
-      if (match > -1) {
-        // Remove from the database
-        await MappingModel.destroy({ where: { discordChannel: channelId } });
+  async disconnect(source: "discord" | "revolt", channelId: string) {
+    let mapping: Mapping;
 
-        // Update the mapping cache
-        await Main.refreshMapping();
-
-        // And remove the webhook
-        const channel = await this.discord.channels.fetch(mapping.discord);
-        await unregisterDiscordChannel(channel, mapping);
-
-        /*
-          Consideration: only the first match is removed from memory, while all
-          occurences are removed from database. This shouldn't be an issue, though,
-          since the connect method checks if the entry already exists in database.
-        */
-      } else {
-        throw new ConnectionError("This channel isn't connected to anything.");
-      }
-
-      return;
-    } else if (platform === "revolt") {
-      const mapping = Main.mappings.find((mapping) => mapping.revolt === channelId);
-      const match = Main.mappings.map((mapping) => mapping.revolt).indexOf(channelId);
-
-      if (match > -1) {
-        // Remove from the database
-        await MappingModel.destroy({ where: { revoltChannel: channelId } });
-
-        // Update the mapping cache
-        await Main.refreshMapping();
-
-        // And remove the webhook
-        const channel = await this.discord.channels.fetch(mapping.discord);
-        await unregisterDiscordChannel(channel, mapping);
-      } else {
-        throw new ConnectionError("This channel isn't connected to anything.");
-      }
+    if (source === "discord") {
+      mapping = Main.mappings.find((mapping) => mapping.discord === channelId);
+    } else {
+      mapping = Main.mappings.find((mapping) => mapping.revolt === channelId);
     }
+
+    if (!mapping) {
+      throw new ConnectionError("This channel is not connected to anything.");
+    }
+
+    // Get Discord channel
+    const discordChannel = await this.discord.channels.fetch(mapping.discord);
+
+    if (!discordChannel) {
+      throw new ConnectionError("Discord channel not found.");
+    }
+
+    // Remove webhook
+    await unregisterDiscordChannel(discordChannel, mapping);
+
+    // Remove mapping from database
+    await MappingModel.destroy({
+      where: {
+        discordChannel: mapping.discord,
+        revoltChannel: mapping.revolt,
+      },
+    });
+
+    // Remove mapping from memory
+    const i = Main.mappings.indexOf(mapping);
+    Main.mappings.splice(i, 1);
   }
 
   /**
@@ -239,7 +206,7 @@ export default class UniversalExecutor {
    */
   async pingDiscordUser(revoltMessage: RevoltMessage, username: string): Promise<string> {
     const target = Main.mappings.find(
-      (mapping) => mapping.revolt === revoltMessage.channel_id
+      (mapping) => mapping.revolt === revoltMessage.channelId
     );
 
     if (target) {
@@ -267,14 +234,14 @@ export default class UniversalExecutor {
           }
 
           // Send message
-          const avatarURL = revoltMessage.author.generateAvatarURL({}, true);
+          const avatarURL = revoltMessage.author.avatarURL;
 
           await sendDiscordMessage(
             webhook,
             {
-              messageId: revoltMessage._id,
-              authorId: revoltMessage.author_id,
-              channelId: revoltMessage.channel_id,
+              messageId: revoltMessage.id,
+              authorId: revoltMessage.authorId,
+              channelId: revoltMessage.channelId,
             },
             `<@${user.id}>`,
             revoltMessage.author.username,
@@ -291,5 +258,13 @@ export default class UniversalExecutor {
     } else {
       throw new EntityNotFoundError("This channel is not connected.");
     }
+  }
+
+  static async initializeWebhook(channel: TextChannel, revoltChannelId: string) {
+    const mapping: Mapping = {
+      discord: channel.id,
+      revolt: revoltChannelId,
+    };
+    await initiateDiscordChannel(channel, mapping);
   }
 }

@@ -97,7 +97,7 @@ export class Bot {
     });
 
     this.discord.on("interactionCreate", async (interaction) => {
-      if (! interaction.isCommand()) return;
+      if (!interaction.isCommand()) return;
 
       const command = this.commands.get(interaction.commandName);
 
@@ -130,7 +130,7 @@ export class Bot {
     }
 
     for (const botEvent of this.botEvents) {
-      if (! botEvent.DISCORD_EVENT) {
+      if (!botEvent.DISCORD_EVENT) {
         // This event doesn't have a discord equivalent
 
         continue;
@@ -144,7 +144,10 @@ export class Bot {
   }
 
   setupRevoltBot() {
-    this.revolt = new RevoltClient({ apiURL: process.env.API_URL, autoReconnect: true });
+    this.revolt = new RevoltClient({
+      baseURL: process.env.API_URL,
+      autoReconnect: true,
+    });
 
     this.revolt.once("ready", () => {
       npmlog.info("Revolt", `Logged in as ${this.revolt.user.username}`);
@@ -170,7 +173,7 @@ export class Bot {
     });
 
     for (const botEvent of this.botEvents) {
-      if (! botEvent.REVOLT_EVENT) {
+      if (!botEvent.REVOLT_EVENT) {
         // This event doesn't have a revolt equivalent
 
         continue;

@@ -30,8 +30,7 @@ import { truncate } from "../util/truncate";
 import { RevcordEmbed } from "../util/embeds";
 
 
-export default class MessageCreateEvent implements IBotEvent
-{
+export default class MessageCreateEvent implements IBotEvent {
     public DISCORD_EVENT = 'messageCreate';
     public REVOLT_EVENT = 'message';
 
@@ -51,22 +50,22 @@ export default class MessageCreateEvent implements IBotEvent
         if (typeof message.content !== "string") return;
 
         const target = Main.mappings.find(
-            (mapping) => mapping.revolt === message.channel_id
+            (mapping) => mapping.revolt === message.channelId
         );
 
-        if (! target) {
+        if (!target) {
             // We don't have this channel mapped to anything, ignore
 
             return;
         }
 
-        if (message.author_id === message.client.user._id) {
+        if (message.authorId === revolt.user.id) {
             // We (the bot) send this message, ignore
 
             return;
         }
 
-        if (message.author.bot && ! target.allowBots) {
+        if (message.author.bot && !target.allowBots) {
             // Message from a bot while we don't allow bot users, ignore
 
             return;
@@ -79,11 +78,11 @@ export default class MessageCreateEvent implements IBotEvent
             args.shift();
             const arg = args.join(" ");
 
-            if (! this.revoltCommands) return;
+            if (!this.revoltCommands) return;
 
             const command = this.revoltCommands.get(commandName);
 
-            if (! command) {
+            if (!command) {
                 npmlog.info("Revolt", "no command");
                 return;
             }
@@ -100,40 +99,40 @@ export default class MessageCreateEvent implements IBotEvent
 
         const channel = await discord.channels.fetch(target.discord);
 
-        if (! (channel instanceof TextChannel)) {
+        if (!(channel instanceof TextChannel)) {
             // We only care about text channels, ignore
 
             return;
         }
 
         const webhook = Main.webhooks.find((webhook) => webhook.name === `revcord-${target.revolt}`);
-    
-        if (! webhook) {
+
+        if (!webhook) {
             throw new Error(`No webhook in channel Discord#${channel.name}`);
         }
 
         // Handle replies
-        const reply_ids = message.reply_ids;
+        const reply_ids = message.replyIds;
         let reply: ReplyObject;
-        
+
         if (reply_ids) {
             const crossPlatformReference = Main.discordCache.find((cached) => cached.createdMessage === reply_ids[0]);
-        
+
             if (crossPlatformReference) {
                 // Find Discord message that's being replied to
                 const referencedMessage = await channel.messages.fetch(crossPlatformReference.parentMessage);
-        
+
                 // Parse attachments
                 let attachments: AttachmentType[] = [];
-        
+
                 if (referencedMessage.attachments.first()) {
                     attachments.push("file");
                 }
-        
+
                 if (referencedMessage.embeds.length > 0) {
                     attachments.push("embed");
                 }
-        
+
                 const replyObject: ReplyObject = {
                     pingable: false,
                     entity: `${referencedMessage.author.username}#${referencedMessage.author.discriminator}`,
@@ -148,30 +147,30 @@ export default class MessageCreateEvent implements IBotEvent
                 try {
                     const channel = revolt.channels.get(target.revolt);
                     const message = await channel.fetchMessage(reply_ids[0]);
-        
+
                     // Parse attachments
                     let attachments: AttachmentType[] = [];
-        
+
                     if (message.attachments !== null) {
                         attachments.push("file");
                     }
-        
+
                     const replyObject: ReplyObject = {
                         pingable: false,
                         entity: message.author.username,
-                        entityImage: message.author.generateAvatarURL({ size: 64 }),
+                        entityImage: message.author.avatarURL,
                         content: message.content.toString(),
                         attachments: attachments ? attachments : [],
                     };
-        
+
                     reply = replyObject;
-                } catch {}
+                } catch { }
             }
         }
 
         const messageString = await formatMessageForDiscord(revolt, message);
 
-        let embed: EmbedBuilder|null = null;
+        let embed: EmbedBuilder | null = null;
 
         if (reply) {
             embed = new EmbedBuilder()
@@ -197,14 +196,14 @@ export default class MessageCreateEvent implements IBotEvent
             }
         }
 
-        const avatarURL = message.author.generateAvatarURL({}, true);
+        const avatarURL = message.author.avatarURL;
 
         await sendDiscordMessage(
             webhook,
             {
-                messageId: message._id,
-                authorId: message.author_id,
-                channelId: message.channel_id,
+                messageId: message.id,
+                authorId: message.authorId,
+                channelId: message.channelId,
             },
             messageString,
             message.author.username,
@@ -219,7 +218,7 @@ export default class MessageCreateEvent implements IBotEvent
             (mapping) => mapping.discord === message.channelId
         );
 
-        if (! target) {
+        if (!target) {
             // We don't have this channel mapped to anything, ignore
 
             return;
@@ -231,7 +230,7 @@ export default class MessageCreateEvent implements IBotEvent
             return;
         }
 
-        if (message.author.bot && ! target.allowBots) {
+        if (message.author.bot && !target.allowBots) {
             // Message from a bot while we don't allow bot users, ignore
 
             return;
@@ -252,7 +251,7 @@ export default class MessageCreateEvent implements IBotEvent
         if (reference) {
             // Find cross-platform replies
             const crossPlatformReference = Main.revoltCache.find(
-            (cached) => cached.createdMessage === reference.messageId
+                (cached) => cached.createdMessage === reference.messageId
             );
 
             if (crossPlatformReference) {
@@ -277,7 +276,7 @@ export default class MessageCreateEvent implements IBotEvent
                             message.reference.channelId
                         );
 
-                        if (! (sourceChannel instanceof TextChannel)) {
+                        if (!(sourceChannel instanceof TextChannel)) {
                             // We only care about text channels, ignore
 
                             return;
@@ -332,13 +331,13 @@ export default class MessageCreateEvent implements IBotEvent
             content: truncate(messageString, 1984),
             masquerade: mask,
             replies: replyPing
-            ? [
-                {
-                    id: replyPing,
-                    mention: false,
-                },
+                ? [
+                    {
+                        id: replyPing,
+                        mention: false,
+                    },
                 ]
-            : [],
+                : [],
         } as any;
 
         if (replyEmbed) {
@@ -365,8 +364,8 @@ export default class MessageCreateEvent implements IBotEvent
 
             // Translate embed
             try {
-                const embed = new RevcordEmbed().fromDiscord(message.embeds[0]).toRevolt();
-                
+                const embed = new RevcordEmbed().toRevolt();
+
                 messageObject.embeds.push(embed);
             } catch (e) {
                 npmlog.warn("Discord", "Failed to translate embed.");
@@ -383,7 +382,7 @@ export default class MessageCreateEvent implements IBotEvent
             Main.discordCache.push({
                 parentMessage: message.id,
                 parentAuthor: message.author.id,
-                createdMessage: sentMessage._id,
+                createdMessage: sentMessage.id,
                 channelId: target.discord,
             });
         } catch (e) {

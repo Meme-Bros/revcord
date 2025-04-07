@@ -1,7 +1,7 @@
 import { RevoltCommand } from "../interfaces";
 import universalExecutor from "../universalExecutor";
 import npmlog from "npmlog";
-import { Message } from "revolt.js/dist/maps/Messages";
+import { Message } from "revolt.js";
 import type { SendableEmbed } from "revolt-api";
 
 export class ListConnectionsCommand implements RevoltCommand {

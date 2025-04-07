@@ -1,6 +1,6 @@
 import { RevoltCommand } from "../interfaces";
 import universalExecutor, { ConnectionError } from "../universalExecutor";
-import { Message } from "revolt.js/dist/maps/Messages";
+import { Message } from "revolt.js";
 import npmlog from "npmlog";
 
 export class ConnectCommand implements RevoltCommand {
@@ -23,9 +23,9 @@ export class ConnectCommand implements RevoltCommand {
     }
 
     // Permission check
-    if (message.channel.server.owner === message.author_id) {
+    if (message.channel.server.ownerId === message.authorId) {
       try {
-        await executor.connect(target, message.channel_id);
+        await executor.connect(target, message.channelId);
         await message.reply("Channels are now connected!");
       } catch (e) {
         if (e instanceof ConnectionError) {

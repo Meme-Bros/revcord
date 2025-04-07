@@ -19,8 +19,7 @@ import { PartialDiscordMessage } from "../interfaces";
 import { RevcordEmbed } from "../util/embeds";
 
 
-export default class MessageUpdateEvent implements IBotEvent
-{
+export default class MessageUpdateEvent implements IBotEvent {
     public DISCORD_EVENT = 'messageUpdate';
     public REVOLT_EVENT = 'message/update';
 
@@ -36,10 +35,10 @@ export default class MessageUpdateEvent implements IBotEvent
         }
 
         const target = Main.mappings.find(
-            (mapping) => mapping.revolt === message.channel_id
+            (mapping) => mapping.revolt === message.channelId
         );
 
-        if (! target) {
+        if (!target) {
             // This channel isn't connected, ignore
 
             return;
@@ -47,10 +46,10 @@ export default class MessageUpdateEvent implements IBotEvent
 
         try {
             const cachedMessage = Main.revoltCache.find(
-                (cached) => cached.parentMessage === message._id
+                (cached) => cached.parentMessage === message.id
             );
 
-            if (! cachedMessage) {
+            if (!cachedMessage) {
                 // We don't know this message (anymore), ignore
 
                 return;
@@ -60,7 +59,7 @@ export default class MessageUpdateEvent implements IBotEvent
                 (webhook) => webhook.name === "revcord-" + target.revolt
             );
 
-            if (! webhook) {
+            if (!webhook) {
                 // Should never happen, but might as well fail safely if it does
 
                 return;
@@ -99,13 +98,13 @@ export default class MessageUpdateEvent implements IBotEvent
         );
 
         try {
-            if (! target) {
+            if (!target) {
                 // We don't have this channel mapped to anything, ignore
 
                 return;
             }
 
-            if (partialMessage.author.bot && ! target.allowBots) {
+            if (partialMessage.author.bot && !target.allowBots) {
                 // Message from a bot while we don't allow bot users, ignore
 
                 return;
@@ -115,7 +114,7 @@ export default class MessageUpdateEvent implements IBotEvent
                 (cached) => cached.parentMessage === partialMessage.id
             );
 
-            if (! cachedMessage) {
+            if (!cachedMessage) {
                 // This message is unknown to use, ignore
 
                 return;
@@ -135,7 +134,7 @@ export default class MessageUpdateEvent implements IBotEvent
                 if (typeof messageObject.embeds === "undefined") messageObject.embeds = [];
 
                 try {
-                    const embed = new RevcordEmbed().fromDiscord(partialMessage.embeds[0]).toRevolt();
+                    const embed = new RevcordEmbed().toRevolt();
 
                     messageObject.embeds.push(embed);
                 } catch (e) {

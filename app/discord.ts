@@ -8,10 +8,10 @@ import {
   Attachment,
 } from "discord.js";
 import {
-  DataCreateChannel
-} from "revolt-api/esm/types";
+  Client as RevoltClient,
+  API
+} from "revolt.js";
 import npmlog from "npmlog";
-import { Client as RevoltClient } from "revolt.js";
 import { Main } from "./Main";
 import { Mapping, PartialDiscordMessage, ReplyObject } from "./interfaces";
 import {
@@ -130,8 +130,7 @@ export function formatMessage(
   return messageString;
 }
 
-export function transformDiscordChannelNameToRevolt(channelName: string): string
-{
+export function transformDiscordChannelNameToRevolt(channelName: string): string {
   return truncate(channelName, 32);
 }
 

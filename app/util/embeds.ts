@@ -1,5 +1,5 @@
-import { Embed } from "discord.js";
-import type { SendableEmbed } from "revolt-api";
+import { ColorResolvable, EmbedBuilder } from "discord.js";
+import { API } from "revolt.js";
 import { fitOrEmpty, truncate } from "./truncate";
 
 interface Field {
@@ -8,97 +8,94 @@ interface Field {
 }
 
 export class RevcordEmbed {
-  constructor() {}
+  private title: string | null;
+  private description: string | null;
+  private fields: Field[];
+  private color: ColorResolvable | null;
+  private icon_url: string | null;
 
-  title: string;
-  content: string;
-  description: string;
-  color: string;
-  url: string;
-  author: string;
-  iconURL: string;
-  footer: string;
+  constructor() {
+    this.title = null;
+    this.description = null;
+    this.fields = [];
+    this.color = null;
+    this.icon_url = null;
+  }
 
-  fields: Field[];
-
-  fromDiscord(embed: Embed) {
-    if (embed.title) {
-      this.title = embed.title;
-    }
-
-    if (embed.url) this.url = embed.url;
-
-    if (embed.description) {
-      this.description = embed.description;
-    }
-
-    if (embed.author && embed.author.iconURL) {
-      this.iconURL = embed.author.iconURL;
-    }
-
-    if (embed.author && embed.author.name) {
-      this.author = embed.author.name;
-    }
-
-    if (embed.hexColor) {
-      this.color = embed.hexColor;
-    }
-
-    if (embed.footer && embed.footer.text) {
-      this.footer = embed.footer.text;
-    }
-
-    this.fields = embed.fields.map((field) => ({
-      name: field.name,
-      content: field.value,
-    }));
-
+  setTitle(title: string) {
+    this.title = title;
     return this;
   }
 
-  // Creates a Revolt embed
-  toRevolt(): SendableEmbed {
-    let result: SendableEmbed = {};
+  setDescription(description: string) {
+    this.description = description;
+    return this;
+  }
 
-    let content = "";
+  addField(name: string, content: string) {
+    this.fields.push({
+      name,
+      content,
+    });
+    return this;
+  }
 
-    // Apply title
+  setColor(color: ColorResolvable) {
+    this.color = color;
+    return this;
+  }
+
+  setIconUrl(url: string) {
+    this.icon_url = url;
+    return this;
+  }
+
+  toDiscord(): EmbedBuilder {
+    const embed = new EmbedBuilder();
+
     if (this.title) {
-      result.title = truncate(this.title, 100);
+      embed.setTitle(truncate(this.title, 256));
     }
 
-    // I can't think of a better way to do this, so the image
-    // will override the thumbnail.
-    //if (embed.thumbnail) revoltEmbed.media = embed.thumbnail.url;
-    //if (embed.image) revoltEmbed.media = embed.image.url;
-    // This causes 400 for some reason.
-    // update: it seems the url has to be hosted on autumn. too lazy to do that :trol:
-    if (this.url) result.url = this.url;
+    if (this.description) {
+      embed.setDescription(truncate(this.description, 4096));
+    }
 
-    if (this.description) content += this.description + "\n\n";
+    if (this.color) {
+      embed.setColor(this.color);
+    }
 
-    if (this.iconURL) result.icon_url = fitOrEmpty(this.iconURL, 128);
+    if (this.icon_url) {
+      embed.setThumbnail(this.icon_url);
+    }
 
-    if (this.color) result.colour = fitOrEmpty(this.color, 128);
+    for (const field of this.fields) {
+      embed.addFields({
+        name: truncate(field.name, 256),
+        value: truncate(field.content, 1024),
+      });
+    }
 
-    if (this.footer) content += "\n> " + this.footer + "\n";
+    return embed;
+  }
 
-    // Process fields
-    this.fields.forEach((field) => {
-      // Fix formatting
-      let name = field.name.replaceAll("```", "\n```\n");
+  toRevolt(): API.SendableEmbed {
+    const embed: API.SendableEmbed = {
+      title: this.title ? truncate(this.title, 100) : undefined,
+      description: this.description ? truncate(this.description, 2000) : undefined,
+      colour: this.color ? String(this.color) : undefined,
+      icon_url: this.icon_url,
+    };
 
-      // Append to content string
-      content += name + "\n";
+    if (this.fields.length > 0) {
+      const fields = this.fields.map((field) => ({
+        name: truncate(field.name, 256),
+        value: truncate(field.content, 1024),
+      }));
+      // @ts-ignore - The type definition seems to be incorrect
+      embed.fields = fields;
+    }
 
-      let fieldContent = field.content.replaceAll("```", "\n```\n");
-
-      content += fieldContent + "\n";
-    });
-
-    // the offset is required for some reason. this needs to be investigated further
-    result.description = truncate(content, 1900);
-
-    return result;
+    return embed;
   }
 }
