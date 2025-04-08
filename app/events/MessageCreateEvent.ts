@@ -32,7 +32,7 @@ import { RevcordEmbed } from "../util/embeds";
 
 export default class MessageCreateEvent implements IBotEvent {
     public DISCORD_EVENT = 'messageCreate';
-    public REVOLT_EVENT = 'message';
+    public REVOLT_EVENT = 'messageCreate';
 
     private revoltCommands: Collection<string, RevoltCommand>;
 

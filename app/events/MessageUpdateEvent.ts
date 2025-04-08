@@ -21,7 +21,7 @@ import { RevcordEmbed } from "../util/embeds";
 
 export default class MessageUpdateEvent implements IBotEvent {
     public DISCORD_EVENT = 'messageUpdate';
-    public REVOLT_EVENT = 'message/update';
+    public REVOLT_EVENT = 'messageUpdate';
 
     public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, message: RevoltMessage, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {
         if (message.author.bot !== null) {

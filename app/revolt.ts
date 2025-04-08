@@ -98,7 +98,7 @@ export async function formatMessage(revolt: RevoltClient, message: Message) {
   messageString += content + "\n";
 
   // Handle attachments
-  if (message.attachments !== null) {
+  if (message.attachments !== undefined) {
     message.attachments.forEach((attachment) => {
       messageString += "[ . ](" + attachment.url + ")\n";
     });

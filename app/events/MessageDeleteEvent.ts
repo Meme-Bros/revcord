@@ -10,17 +10,16 @@ import type IBotEvent from "./IBotEvent";
 import { Main } from "../Main";
 
 
-export default class MessageDeleteEvent implements IBotEvent
-{
+export default class MessageDeleteEvent implements IBotEvent {
     public DISCORD_EVENT = 'messageDelete';
-    public REVOLT_EVENT = 'message/delete';
+    public REVOLT_EVENT = 'messageDelete';
 
     public async revoltToDiscord(revolt: RevoltClient, discord: DiscordClient, messageId: string, eventParameterTwo: undefined, eventParameterThree: undefined): Promise<void> {
         const cachedMessage = Main.revoltCache.find(
             (cached) => cached.parentMessage === messageId
         );
 
-        if (! cachedMessage) {
+        if (!cachedMessage) {
             // We don't know this message (anymore), ignore
 
             return;
@@ -30,8 +29,8 @@ export default class MessageDeleteEvent implements IBotEvent
             const target = Main.mappings.find(
                 (mapping) => mapping.revolt === cachedMessage.channelId
             );
-        
-            if (! target) {
+
+            if (!target) {
                 // Should never happen, but might as well fail safely if it does
 
                 return;
@@ -41,7 +40,7 @@ export default class MessageDeleteEvent implements IBotEvent
                 (webhook) => webhook.name === "revcord-" + target.revolt
             );
 
-            if (! webhook) {
+            if (!webhook) {
                 // Should never happen, but might as well fail safely if it does
 
                 return;
@@ -63,7 +62,7 @@ export default class MessageDeleteEvent implements IBotEvent
             (cached) => cached.parentMessage === message.id
         );
 
-        if (! cachedMessage) {
+        if (!cachedMessage) {
             // We don't know this message (anymore), ignore
 
             return;
@@ -79,8 +78,8 @@ export default class MessageDeleteEvent implements IBotEvent
             const target = Main.mappings.find(
                 (mapping) => mapping.discord === cachedMessage.channelId
             );
-        
-            if (! target) {
+
+            if (!target) {
                 // Should never happen, but might as well fail safely if it does
 
                 return;
