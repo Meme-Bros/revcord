@@ -1,8 +1,7 @@
 import { RevoltCommand } from "../interfaces";
 import universalExecutor from "../universalExecutor";
 import npmlog from "npmlog";
-import { Message } from "revolt.js";
-import type { SendableEmbed } from "revolt-api";
+import { Message, TextEmbed } from "revolt.js";
 
 export class ListConnectionsCommand implements RevoltCommand {
   data = {
@@ -18,10 +17,7 @@ export class ListConnectionsCommand implements RevoltCommand {
     try {
       const connections = await executor.connections();
 
-      let replyEmbed: SendableEmbed = {
-        title: "Connected channels",
-        colour: "#5765f2",
-      };
+      let embedDescription = "";
 
       if (connections.length) {
         let desc = "";
@@ -34,10 +30,20 @@ Bots allowed: ${connection.allowBots ? "yes" : "no"}
 `;
         });
 
-        replyEmbed.description = desc;
+        embedDescription = desc;
       } else {
-        replyEmbed.description = "No connections found.";
+        embedDescription = "No connections found.";
       }
+
+      // TODO: Convert to TextEmbed object
+      // Requires RevoltClient to be passed in
+      let replyEmbed = {
+        title: "Connected channels",
+        colour: "#5765f2",
+        icon_url: message.author.avatarURL,
+        description: embedDescription,
+      };
+
 
       await message.reply({
         content: " ",

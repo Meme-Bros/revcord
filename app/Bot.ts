@@ -1,6 +1,6 @@
 import { Client as DiscordClient, Collection, GatewayIntentBits, ChannelType, Channel, TextChannel } from "discord.js";
 import { Client as RevoltClient } from "revolt.js";
-import { REST } from "@discordjs/rest";
+import { REST } from "discord.js";
 import npmlog from "npmlog";
 
 import { Main } from "./Main";

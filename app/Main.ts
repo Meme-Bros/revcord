@@ -35,7 +35,7 @@ export class Main {
     }
 
     Main.webhooks = [];
-
+    Main.mappings = [];
     Main.discordCache = [];
     Main.revoltCache = [];
 

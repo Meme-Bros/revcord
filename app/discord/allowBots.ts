@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
+import { SlashCommandBuilder } from "discord.js";
 import { DiscordCommand } from "../interfaces";
 import { Main } from "../Main";
 import universalExecutor, { ConnectionError } from "../universalExecutor";
