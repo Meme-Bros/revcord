@@ -1,30 +1,21 @@
 import {
   Channel,
-  Client as DiscordClient,
   Collection,
-  Message,
   MessageMentions,
   TextChannel,
   Attachment,
 } from "discord.js";
-import {
-  Client as RevoltClient,
-  API
-} from "revolt.js";
 import npmlog from "npmlog";
 import { Main } from "./Main";
-import { Mapping, PartialDiscordMessage, ReplyObject } from "./interfaces";
+import { Mapping } from "./interfaces";
 import {
   DiscordChannelPattern,
   DiscordEmojiPattern,
   DiscordPingPattern,
   TrailingNewlines,
 } from "./util/regex";
-import { RevcordEmbed } from "./util/embeds";
 import { checkWebhookPermissions } from "./util/permissions";
 import { truncate } from "./util/truncate";
-import { MappingModel } from "./models/Mapping";
-import UniversalExecutor from "./universalExecutor";
 
 /**
  * This file contains code taking care of things from Discord to Revolt

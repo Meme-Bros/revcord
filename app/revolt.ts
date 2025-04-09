@@ -1,7 +1,6 @@
-import { Client as DiscordClient, EmbedBuilder, TextChannel, Webhook } from "discord.js";
-import npmlog from "npmlog";
+import { EmbedBuilder, Webhook } from "discord.js";
 import { Client as RevoltClient, Message } from "revolt.js";
-import { AttachmentType, Mapping, ReplyObject, RevoltSourceParams } from "./interfaces";
+import { RevoltSourceParams } from "./interfaces";
 import { Main } from "./Main";
 import {
   RevoltChannelPattern,

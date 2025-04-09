@@ -1,8 +1,7 @@
 import {
     Client as RevoltClient,
     Channel as RevoltChannel,
-    API,
-    Channel
+    API
 } from "revolt.js";
 import {
     Client as DiscordClient,
@@ -10,7 +9,6 @@ import {
     ChannelType as DiscordChannelType,
     GuildChannelCreateOptions as DiscordGuildChannelCreateOptions,
 } from "discord.js";
-import { BridgedEventType } from "../bridgedEvents";
 import npmlog from "npmlog";
 import type IBotEvent from "./IBotEvent";
 import { MappingModel } from "../models/Mapping";
@@ -18,7 +16,6 @@ import UniversalExecutor from "../universalExecutor";
 import { transformRevoltChannelNameToDiscord } from "../revolt";
 import { transformDiscordChannelNameToRevolt } from "../discord";
 import { Main } from "../Main";
-import { promisedTimeout } from "../util/promise";
 
 export default class ChannelCreateEvent implements IBotEvent {
     public DISCORD_EVENT = 'channelCreate';
@@ -103,15 +100,20 @@ export default class ChannelCreateEvent implements IBotEvent {
         }
 
         const data: API.DataCreateServerChannel = {
-            type: "Text",
+            type: "Text" as const,
             name: transformDiscordChannelNameToRevolt(channel.name),
             description: channel.topic || undefined,
             nsfw: channel.nsfw || false,
         };
 
         try {
-            const response = await revolt.api.post(`/servers/${String(revoltChannel.server)}/channels`, data);
-            const channelData = response as { _id: string; name: string };
+            const revoltServer = revolt.servers.get(String(revoltChannel.server));
+            if (!revoltServer) {
+                throw new Error(`Server ${String(revoltChannel.server)} not found`);
+            }
+
+            const createdChannel = await revoltServer.createChannel(data);
+            const channelData = { _id: createdChannel.id, name: createdChannel.name };
 
             // Save mapping
             const mapping = await MappingModel.create({

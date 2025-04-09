@@ -2,7 +2,6 @@ import { Client as DiscordClient, TextChannel } from "discord.js";
 import npmlog from "npmlog";
 import { Client as RevoltClient, Channel, Message as RevoltMessage } from "revolt.js";
 import { initiateDiscordChannel, unregisterDiscordChannel } from "./discord";
-import { InsufficientPermissionsError } from "./errors";
 import { ConnectionPair, Mapping } from "./interfaces";
 import { Main } from "./Main";
 import { MappingModel } from "./models/Mapping";

@@ -1,6 +1,6 @@
 import { ColorResolvable, EmbedBuilder } from "discord.js";
 import { API } from "revolt.js";
-import { fitOrEmpty, truncate } from "./truncate";
+import { truncate } from "./truncate";
 
 interface Field {
   name: string;

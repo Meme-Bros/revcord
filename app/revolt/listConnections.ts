@@ -1,7 +1,7 @@
 import { RevoltCommand } from "../interfaces";
 import universalExecutor from "../universalExecutor";
 import npmlog from "npmlog";
-import { Message, TextEmbed } from "revolt.js";
+import { Message, API } from "revolt.js";
 
 export class ListConnectionsCommand implements RevoltCommand {
   data = {
@@ -37,7 +37,7 @@ Bots allowed: ${connection.allowBots ? "yes" : "no"}
 
       // TODO: Convert to TextEmbed object
       // Requires RevoltClient to be passed in
-      let replyEmbed = {
+      let replyEmbed: API.SendableEmbed = {
         title: "Connected channels",
         colour: "#5765f2",
         icon_url: message.author.avatarURL,

@@ -12,12 +12,9 @@ import {
 } from "discord.js";
 import npmlog from "npmlog";
 import type IBotEvent from "./IBotEvent";
-import { MappingModel } from "../models/Mapping";
 import { transformRevoltChannelNameToDiscord } from "../revolt";
 import { transformDiscordChannelNameToRevolt } from "../discord";
 import { Main } from "../Main";
-import { BridgedEventType } from "../bridgedEvents";
-import { promisedTimeout } from "../util/promise";
 
 export default class ChannelUpdateEvent implements IBotEvent {
     public DISCORD_EVENT = 'channelUpdate';
@@ -88,7 +85,7 @@ export default class ChannelUpdateEvent implements IBotEvent {
         };
 
         try {
-            await revolt.api.patch(`/channels/${revoltChannel.id}`, data);
+            await revoltChannel.edit(data);
         } catch (e) {
             npmlog.error("Revolt", "Failed to update channel");
             npmlog.error("Revolt", e);
