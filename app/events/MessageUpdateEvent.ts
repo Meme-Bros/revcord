@@ -126,7 +126,9 @@ export default class MessageUpdateEvent implements IBotEvent {
                 messageObject.content = formatMessageForRevolt(
                     partialMessage.attachments,
                     partialMessage.content,
-                    partialMessage.mentions
+                    partialMessage.mentions,
+                    undefined,
+                    revolt
                 );
             }
 

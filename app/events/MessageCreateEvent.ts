@@ -1,4 +1,5 @@
 import {
+    API,
     Client as RevoltClient,
     Message as RevoltMessage
 } from "revolt.js";
@@ -287,17 +288,19 @@ export default class MessageCreateEvent implements IBotEvent {
                         );
 
                         // Prepare reply embed
-                        const formattedContent = formatMessageForRevolt(
+                        const formattedContent = await formatMessageForRevolt(
                             referenced.attachments,
                             referenced.content,
-                            referenced.mentions
+                            referenced.mentions,
+                            undefined,
+                            revolt
                         );
 
                         replyEmbed = {
                             pingable: false,
                             entity: referenced.author.username,
                             entityImage: referenced.author.avatarURL(),
-                            content: formattedContent,
+                            content: formattedContent.messageString,
                             attachments: [],
                         };
 
@@ -318,16 +321,18 @@ export default class MessageCreateEvent implements IBotEvent {
         let stickerUrl = sticker && sticker.url;
 
         // Format message content (parse emojis, mentions, images etc.)
-        const messageString = formatMessageForRevolt(
+        const { messageString, messageAttachments } = await formatMessageForRevolt(
             message.attachments,
             message.content,
             message.mentions,
-            stickerUrl
+            stickerUrl,
+            revolt,
         );
 
         // Prepare message object
-        // revolt.js doesn't support masquerade yet, but we can use them using this messy trick.
-        const messageObject = {
+        // revolt.js doesn't support masquerade yet, but we can use them using this messy trick
+        const messageObject: API.DataMessageSend = {
+            attachments: messageAttachments,
             content: truncate(messageString, 1984),
             masquerade: mask,
             replies: replyPing
@@ -346,7 +351,6 @@ export default class MessageCreateEvent implements IBotEvent {
             }
 
             messageObject.embeds.push({
-                type: "Text",
                 icon_url: replyEmbed.entityImage,
                 title: replyEmbed.entity,
                 description: `**Reply to**: ${replyEmbed.content}`,

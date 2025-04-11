@@ -14,6 +14,7 @@ import {
   DiscordPingPattern,
   TrailingNewlines,
 } from "./util/regex";
+import { Client as RevoltClient } from "revolt.js";
 import { checkWebhookPermissions } from "./util/permissions";
 import { truncate } from "./util/truncate";
 
@@ -29,13 +30,15 @@ import { truncate } from "./util/truncate";
  * @param ping ID of the user to ping
  * @returns Formatted string
  */
-export function formatMessage(
+export async function formatMessage(
   attachments: Collection<string, Attachment>,
   content: string,
   mentions: MessageMentions,
-  stickerUrl?: string
+  stickerUrl?: string,
+  revoltClient?: RevoltClient,
 ) {
   let messageString = "";
+  let messageAttachments: string[] = [];
 
   // Handle emojis
   const emojis = content.match(DiscordEmojiPattern);
@@ -108,17 +111,42 @@ export function formatMessage(
     }
   }
 
-  messageString += content + "\n";
+  if (attachments.size > 0) {
+    npmlog.info("Discord", "Processing attachments Discord -> Revolt");
+    messageAttachments = await Promise.all(attachments.map(async (attachment) => {
+      try {
+        const blob = await (await fetch(attachment.url)).blob();
 
-  attachments.forEach((attachment) => {
-    messageString += attachment.url + "\n";
-  });
+        const formData = new FormData();
+        formData.append('file', blob, attachment.name);
+
+        const uploadResponse = await fetch(`${process.env.REVOLT_ATTACHMENT_URL || "https://api.revolt.chat"}/attachments`, {
+          method: 'POST',
+          headers: {
+            'X-Bot-Token': process.env.REVOLT_TOKEN
+          },
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed with status ${uploadResponse.status}`);
+        }
+
+        return (await uploadResponse.json() as { id: string }).id;
+
+      } catch (error) {
+        npmlog.error("Discord", `Error processing attachment ${attachment.name}: ${error}`);
+        return "";
+      }
+    }));
+  }
 
   if (stickerUrl) messageString += stickerUrl + "\n";
 
+  messageString = content + "\n" + messageString;
   messageString = messageString.replace(TrailingNewlines, '');
 
-  return messageString;
+  return { messageString, messageAttachments };
 }
 
 export function transformDiscordChannelNameToRevolt(channelName: string): string {
