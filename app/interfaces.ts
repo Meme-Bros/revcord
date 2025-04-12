@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
+import { SlashCommandBuilder, SlashCommandOptionsOnlyBuilder } from "discord.js";
 import {
   Attachment,
   Collection,
@@ -7,7 +7,7 @@ import {
   MessageMentions,
   User,
 } from "discord.js";
-import { Message } from "revolt.js/dist/maps/Messages";
+import { Message } from "revolt.js";
 import UniversalExecutor from "./universalExecutor";
 
 export interface Mapping {
@@ -19,6 +19,7 @@ export interface Mapping {
 export interface DiscordCommand {
   data:
   | SlashCommandBuilder
+  | SlashCommandOptionsOnlyBuilder
   | Omit<SlashCommandBuilder, "addSubcommandGroup" | "addSubcommand">;
   execute(interaction: CommandInteraction, executor: UniversalExecutor): Promise<void>;
 }

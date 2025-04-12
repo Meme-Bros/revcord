@@ -1,6 +1,6 @@
 import universalExecutor, { EntityNotFoundError } from "../universalExecutor";
 import npmlog from "npmlog";
-import { Message } from "revolt.js/dist/maps/Messages";
+import { Message } from "revolt.js";
 import { RevoltCommand } from "../interfaces";
 
 export class PingCommand implements RevoltCommand {

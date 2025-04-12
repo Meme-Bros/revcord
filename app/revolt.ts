@@ -1,8 +1,6 @@
-import { Client as DiscordClient, EmbedBuilder, TextChannel, Webhook } from "discord.js";
-import npmlog from "npmlog";
-import { Client as RevoltClient } from "revolt.js";
-import { Message } from "revolt.js/dist/maps/Messages";
-import { AttachmentType, Mapping, ReplyObject, RevoltSourceParams } from "./interfaces";
+import { EmbedBuilder, Webhook } from "discord.js";
+import { Client as RevoltClient, Message } from "revolt.js";
+import { RevoltSourceParams } from "./interfaces";
 import { Main } from "./Main";
 import {
   RevoltChannelPattern,
@@ -29,7 +27,7 @@ export async function formatMessage(revolt: RevoltClient, message: Message) {
 
   // Handle pings
   const pings = content.match(RevoltPingPattern);
-  if (pings && message.mentions) {
+  if (pings && message.mentionIds) {
     for (const ping of pings) {
       const matched = RevoltPingPattern.exec(ping);
       RevoltPingPattern.lastIndex = 0;
@@ -39,10 +37,10 @@ export async function formatMessage(revolt: RevoltClient, message: Message) {
         const id = matched.groups["id"];
 
         if (id) {
-          const match = message.mentions.find((member) => member._id === id);
+          const member = await revolt.users.fetch(id);
 
-          if (match) {
-            content = content.replace(ping, `@${match.username}`);
+          if (member) {
+            content = content.replace(ping, `@${member.username}`);
           }
         }
       }
@@ -62,7 +60,7 @@ export async function formatMessage(revolt: RevoltClient, message: Message) {
           try {
             const channelData = await revolt.channels.fetch(channelId);
             content = content.replace(mention, "#" + channelData.name);
-          } catch {}
+          } catch { }
         }
       }
     }
@@ -99,17 +97,16 @@ export async function formatMessage(revolt: RevoltClient, message: Message) {
   messageString += content + "\n";
 
   // Handle attachments
-  if (message.attachments !== null) {
+  if (message.attachments !== undefined) {
     message.attachments.forEach((attachment) => {
-      messageString += "[ . ](" + revolt.generateFileURL(attachment) + ")\n";
+      messageString += "[ . ](" + attachment.url + ")\n";
     });
   }
 
   return messageString;
 }
 
-export function transformRevoltChannelNameToDiscord(channelName: string): string
-{
+export function transformRevoltChannelNameToDiscord(channelName: string): string {
   return truncate(channelName, 100).replaceAll(' ', '-');
 }
 

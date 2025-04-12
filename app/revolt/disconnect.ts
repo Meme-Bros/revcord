@@ -1,7 +1,7 @@
 import { RevoltCommand } from "../interfaces";
 import universalExecutor, { ConnectionError } from "../universalExecutor";
 import npmlog from "npmlog";
-import { Message } from "revolt.js/dist/maps/Messages";
+import { Message } from "revolt.js";
 
 export class DisconnectCommand implements RevoltCommand {
   data = {
@@ -16,9 +16,9 @@ export class DisconnectCommand implements RevoltCommand {
   ): Promise<void> {
     // Permission check
     // For now, allow only the owner to access
-    if (message.channel.server.owner === message.author_id) {
+    if (message.channel.server.ownerId === message.authorId) {
       try {
-        await executor.disconnect("revolt", message.channel_id);
+        await executor.disconnect("revolt", message.channelId);
         await message.reply("Channel disconnected successfully.");
       } catch (e) {
         if (e instanceof ConnectionError) {

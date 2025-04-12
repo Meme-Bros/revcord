@@ -88,6 +88,9 @@
 ### Using Docker <a id="docker"></a>
 To help you get started creating a container from this image you can either use docker-compose or the docker cli.
 
+> [!NOTE]
+> Be sure to create a file called revcord.sqlite before you bridge it as docker volume, otherwise docker will create a folder called revcord.sqlite and data will be lost.
+
 ##### docker-compose (recommended) 
 ```
 services:
@@ -136,8 +139,8 @@ docker run -d \
 ```sh
 git clone https://github.com/Meme-Bros/revcord.git
 cd revcord
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
 2. Place the relevant tokens in environment variables. The easiest way is to copy .env.example file and fill in the following information
@@ -153,8 +156,9 @@ If you are running a self-hosted instance of Revolt, additionally set the `API_U
 API_URL = https://example.com/api
 REVOLT_ATTACHMENT_URL = https://example.com/autumn
 ```
+3. Create a new file called revcord.sqlite
 
-3. Start the bot using `npm start`
+4. Start the bot using `pnpm start`
 
 > [!NOTE] 
 > it's recommended to use something like [pm2](https://pm2.keymetrics.io/) or [nodemon](https://nodemon.io/) to run the bot. Make sure to pass the `--experimental-specifier-resolution=node` flag to node manually, otherwise it will not run (it's included in the default start script).

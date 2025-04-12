@@ -1,30 +1,22 @@
 import {
   Channel,
-  Client as DiscordClient,
   Collection,
-  Message,
   MessageMentions,
   TextChannel,
   Attachment,
 } from "discord.js";
-import {
-  DataCreateChannel
-} from "revolt-api/esm/types";
 import npmlog from "npmlog";
-import { Client as RevoltClient } from "revolt.js";
 import { Main } from "./Main";
-import { Mapping, PartialDiscordMessage, ReplyObject } from "./interfaces";
+import { Mapping } from "./interfaces";
 import {
   DiscordChannelPattern,
   DiscordEmojiPattern,
   DiscordPingPattern,
   TrailingNewlines,
 } from "./util/regex";
-import { RevcordEmbed } from "./util/embeds";
+import { Client as RevoltClient } from "revolt.js";
 import { checkWebhookPermissions } from "./util/permissions";
 import { truncate } from "./util/truncate";
-import { MappingModel } from "./models/Mapping";
-import UniversalExecutor from "./universalExecutor";
 
 /**
  * This file contains code taking care of things from Discord to Revolt
@@ -38,13 +30,15 @@ import UniversalExecutor from "./universalExecutor";
  * @param ping ID of the user to ping
  * @returns Formatted string
  */
-export function formatMessage(
+export async function formatMessage(
   attachments: Collection<string, Attachment>,
   content: string,
   mentions: MessageMentions,
-  stickerUrl?: string
+  stickerUrl?: string,
+  revoltClient?: RevoltClient,
 ) {
   let messageString = "";
+  let messageAttachments: string[] = [];
 
   // Handle emojis
   const emojis = content.match(DiscordEmojiPattern);
@@ -117,21 +111,45 @@ export function formatMessage(
     }
   }
 
-  messageString += content + "\n";
+  if (attachments.size > 0) {
+    npmlog.info("Discord", "Processing attachments Discord -> Revolt");
+    messageAttachments = await Promise.all(attachments.map(async (attachment) => {
+      try {
+        const blob = await (await fetch(attachment.url)).blob();
 
-  attachments.forEach((attachment) => {
-    messageString += attachment.url + "\n";
-  });
+        const formData = new FormData();
+        formData.append('file', blob, attachment.name);
+
+        const uploadResponse = await fetch(`${process.env.REVOLT_ATTACHMENT_URL || "https://api.revolt.chat"}/attachments`, {
+          method: 'POST',
+          headers: {
+            'X-Bot-Token': process.env.REVOLT_TOKEN
+          },
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed with status ${uploadResponse.status}`);
+        }
+
+        return (await uploadResponse.json() as { id: string }).id;
+
+      } catch (error) {
+        npmlog.error("Discord", `Error processing attachment ${attachment.name}: ${error}`);
+        return "";
+      }
+    }));
+  }
 
   if (stickerUrl) messageString += stickerUrl + "\n";
 
+  messageString = content + "\n" + messageString;
   messageString = messageString.replace(TrailingNewlines, '');
 
-  return messageString;
+  return { messageString, messageAttachments };
 }
 
-export function transformDiscordChannelNameToRevolt(channelName: string): string
-{
+export function transformDiscordChannelNameToRevolt(channelName: string): string {
   return truncate(channelName, 32);
 }
 
